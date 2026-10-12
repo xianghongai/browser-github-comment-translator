@@ -1,0 +1,210 @@
+{
+  "appName": {
+    "message": "GitHub Comment Translator"
+  },
+  "appDesc": {
+    "message": "Translate a single GitHub issue, pull request or discussion comment with Google Translate or your own AI model"
+  },
+  "translate": {
+    "message": "Translate this comment"
+  },
+  "translating": {
+    "message": "Translating…"
+  },
+  "hideTranslation": {
+    "message": "Hide translation"
+  },
+  "showTranslation": {
+    "message": "Show translation"
+  },
+  "chooseEngine": {
+    "message": "Translate with…"
+  },
+  "settings": {
+    "message": "Settings"
+  },
+  "nothingToTranslate": {
+    "message": "Nothing to translate in this comment"
+  },
+  "translationFailed": {
+    "message": "Translation failed: $ERROR$",
+    "placeholders": {
+      "error": {
+        "content": "$1"
+      }
+    }
+  },
+  "retry": {
+    "message": "Retry"
+  },
+  "general": {
+    "message": "General"
+  },
+  "targetLanguage": {
+    "message": "Target language"
+  },
+  "targetLanguageHint": {
+    "message": "Language that comments are translated into"
+  },
+  "defaultEngine": {
+    "message": "Default engine"
+  },
+  "defaultEngineHint": {
+    "message": "Used when you click the Translate button. Pick another engine for a single comment from the arrow menu next to it."
+  },
+  "aiProviders": {
+    "message": "AI providers"
+  },
+  "aiProvidersHint": {
+    "message": "Each provider is identified by its vendor and model. Same providers as ai-commit.providers in AI Commit++, with snake_case keys. API keys are stored only in this browser and are sent only to the provider you configure."
+  },
+  "addProvider": {
+    "message": "Add provider"
+  },
+  "advanced": {
+    "message": "Advanced"
+  },
+  "testProvider": {
+    "message": "Test"
+  },
+  "testing": {
+    "message": "Testing…"
+  },
+  "removeProvider": {
+    "message": "Remove"
+  },
+  "permissionDenied": {
+    "message": "Access to $ORIGIN$ was not granted",
+    "placeholders": {
+      "origin": {
+        "content": "$1"
+      }
+    }
+  },
+  "importExport": {
+    "message": "Import / export"
+  },
+  "importExportHint": {
+    "message": "The JSON below is the current provider list (snake_case keys such as vendor, api_key, base_url). Edit it or paste ai-commit.providers from VS Code: camelCase keys are converted, id is dropped and vendor is inferred from the type or base_url host. Importing replaces all providers. Replace any ${env:NAME} API keys with the key itself."
+  },
+  "imported": {
+    "message": "Imported $COUNT$ provider(s)",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "invalidJson": {
+    "message": "Invalid JSON"
+  },
+  "save": {
+    "message": "Save"
+  },
+  "saved": {
+    "message": "Saved"
+  },
+  "savedWithoutPermission": {
+    "message": "Saved, but host access was not granted, so AI providers cannot be reached yet"
+  },
+  "saveFailed": {
+    "message": "Save failed"
+  },
+  "field_vendor": {
+    "message": "Vendor"
+  },
+  "field_vendor_hint": {
+    "message": "For example DeepSeek. Vendor + model must be unique."
+  },
+  "field_type": {
+    "message": "Type"
+  },
+  "field_model": {
+    "message": "Model"
+  },
+  "field_api_key": {
+    "message": "API key"
+  },
+  "field_base_url": {
+    "message": "Base URL"
+  },
+  "field_endpoint": {
+    "message": "Endpoint"
+  },
+  "field_api_version": {
+    "message": "API version"
+  },
+  "field_deployment": {
+    "message": "Deployment"
+  },
+  "field_timeout_ms": {
+    "message": "Timeout (ms)"
+  },
+  "field_temperature": {
+    "message": "Temperature"
+  },
+  "field_top_p": {
+    "message": "Top P"
+  },
+  "field_max_tokens": {
+    "message": "Max tokens"
+  },
+  "field_headers": {
+    "message": "Extra headers (JSON)"
+  },
+  "editableTranslation": {
+    "message": "Translation, editable"
+  },
+  "noProviders": {
+    "message": "No AI providers yet. Add one to translate comments with your own model."
+  },
+  "defaultBadge": {
+    "message": "Default"
+  },
+  "editProvider": {
+    "message": "Edit"
+  },
+  "addProviderTitle": {
+    "message": "Add AI provider"
+  },
+  "editProviderTitle": {
+    "message": "Edit $NAME$",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "confirmRemove": {
+    "message": "Remove $NAME$?",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "removed": {
+    "message": "Removed"
+  },
+  "importReplace": {
+    "message": "Import and replace"
+  },
+  "copy": {
+    "message": "Copy"
+  },
+  "copied": {
+    "message": "Copied"
+  },
+  "waitingForPermission": {
+    "message": "Waiting for the browser to grant access…"
+  },
+  "field_organization": {
+    "message": "Organization"
+  }
+}

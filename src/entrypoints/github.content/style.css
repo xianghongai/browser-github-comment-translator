@@ -1,0 +1,198 @@
+/* 颜色全部取自 Primer 的 CSS 变量，自动跟随 GitHub 的浅色/深色主题；括号内是浅色主题的回退值。 */
+
+.gct-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-right: 4px;
+  /* 默认隐藏（保留占位，标题栏不跳动），鼠标经过这条评论时才出现。 */
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+[data-gct-comment]:hover .gct-actions,
+.gct-actions:focus-within,
+.gct-actions[data-active],
+.gct-actions:has([aria-expanded='true']) {
+  opacity: 1;
+}
+
+/* 触屏等没有悬停的设备上始终显示。 */
+@media (hover: none) {
+  .gct-actions {
+    opacity: 1;
+  }
+}
+
+.gct-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  min-width: 28px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fgColor-muted, #59636e);
+  cursor: pointer;
+}
+
+.gct-button.gct-menu-button {
+  min-width: 20px;
+  padding: 0 2px;
+}
+
+.gct-button:hover:not(:disabled),
+.gct-button[aria-expanded='true'] {
+  background: var(--control-transparent-bgColor-hover, rgba(208, 215, 222, 0.32));
+  color: var(--fgColor-default, #1f2328);
+}
+
+.gct-button:focus-visible,
+.gct-menu-item:focus-visible,
+.gct-link-button:focus-visible {
+  outline: 2px solid var(--focus-outlineColor, #0969da);
+  outline-offset: -2px;
+}
+
+.gct-button[aria-pressed='true'] {
+  color: var(--fgColor-accent, #0969da);
+}
+
+.gct-button:disabled {
+  cursor: progress;
+}
+
+.gct-loading svg {
+  animation: gct-spin 0.8s linear infinite;
+}
+
+@keyframes gct-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.gct-translation {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--borderColor-accent-emphasis, #0969da);
+  border-radius: 0 6px 6px 0;
+  background: var(--bgColor-muted, #f6f8fa);
+}
+
+/* Discussions 的首楼和顶层评论：正文是带 16px 内边距的 td，译文块放在它后面时补上同样的缩进。 */
+.timeline-comment td.comment-body + .gct-translation {
+  margin: 0 16px 16px;
+}
+
+.gct-translation[hidden] {
+  display: none;
+}
+
+.gct-translation[data-state='error'] {
+  border-left-color: var(--borderColor-danger-emphasis, #cf222e);
+}
+
+.gct-message {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  color: var(--fgColor-muted, #59636e);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.gct-message[hidden],
+.gct-content[hidden] {
+  display: none;
+}
+
+.gct-translation[data-state='error'] .gct-message {
+  color: var(--fgColor-danger, #d1242f);
+}
+
+.gct-link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fgColor-accent, #0969da);
+  font: inherit;
+  cursor: pointer;
+}
+
+.gct-link-button:hover {
+  text-decoration: underline;
+}
+
+.gct-content {
+  border-radius: 4px;
+  outline: none;
+}
+
+.gct-content:focus {
+  box-shadow: 0 0 0 2px var(--borderColor-accent-muted, rgba(84, 174, 255, 0.4));
+}
+
+.gct-content.markdown-body {
+  background: transparent;
+}
+
+.gct-menu {
+  position: absolute;
+  z-index: 100;
+  min-width: 200px;
+  max-width: 360px;
+  padding: 8px;
+  border: 1px solid var(--borderColor-default, #d1d9e0);
+  border-radius: 12px;
+  background: var(--overlay-bgColor, #ffffff);
+  box-shadow: var(
+    --shadow-floating-small,
+    0 0 0 1px rgba(209, 217, 224, 0.5),
+    0 6px 12px -3px rgba(37, 41, 46, 0.04),
+    0 6px 18px 0 rgba(37, 41, 46, 0.12)
+  );
+}
+
+.gct-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fgColor-default, #1f2328);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.gct-menu-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gct-menu-item:hover {
+  background: var(--control-transparent-bgColor-hover, rgba(208, 215, 222, 0.32));
+}
+
+.gct-menu-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 16px;
+  color: var(--fgColor-muted, #59636e);
+}
+
+.gct-menu-divider {
+  height: 1px;
+  margin: 8px -8px;
+  background: var(--borderColor-muted, #d1d9e0b3);
+}

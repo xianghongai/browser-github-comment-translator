@@ -1,0 +1,210 @@
+{
+  "appName": {
+    "message": "GitHub 评论翻译"
+  },
+  "appDesc": {
+    "message": "用 Google 翻译或你自己的 AI 模型，只翻译 GitHub Issue / Pull Request / Discussion 中的某一条评论"
+  },
+  "translate": {
+    "message": "翻译这条评论"
+  },
+  "translating": {
+    "message": "翻译中…"
+  },
+  "hideTranslation": {
+    "message": "隐藏译文"
+  },
+  "showTranslation": {
+    "message": "显示译文"
+  },
+  "chooseEngine": {
+    "message": "选择翻译引擎…"
+  },
+  "settings": {
+    "message": "设置"
+  },
+  "nothingToTranslate": {
+    "message": "这条评论没有需要翻译的文字"
+  },
+  "translationFailed": {
+    "message": "翻译失败：$ERROR$",
+    "placeholders": {
+      "error": {
+        "content": "$1"
+      }
+    }
+  },
+  "retry": {
+    "message": "重试"
+  },
+  "general": {
+    "message": "通用"
+  },
+  "targetLanguage": {
+    "message": "目标语言"
+  },
+  "targetLanguageHint": {
+    "message": "评论要翻译成的语言"
+  },
+  "defaultEngine": {
+    "message": "默认引擎"
+  },
+  "defaultEngineHint": {
+    "message": "点击翻译按钮时使用。想让某一条评论换个引擎，可用按钮旁边的下拉箭头。"
+  },
+  "aiProviders": {
+    "message": "AI 模型服务"
+  },
+  "aiProvidersHint": {
+    "message": "每个服务以「厂商 + 模型」区分。与 AI Commit++ 的 ai-commit.providers 支持相同的服务，键名使用 snake_case。API Key 只保存在本浏览器，只会发给你配置的服务。"
+  },
+  "addProvider": {
+    "message": "添加服务"
+  },
+  "advanced": {
+    "message": "高级选项"
+  },
+  "testProvider": {
+    "message": "测试"
+  },
+  "testing": {
+    "message": "测试中…"
+  },
+  "removeProvider": {
+    "message": "删除"
+  },
+  "permissionDenied": {
+    "message": "未获得访问 $ORIGIN$ 的权限",
+    "placeholders": {
+      "origin": {
+        "content": "$1"
+      }
+    }
+  },
+  "importExport": {
+    "message": "导入 / 导出"
+  },
+  "importExportHint": {
+    "message": "下面是当前的服务列表 JSON（snake_case 键名，如 vendor、api_key、base_url）。可以直接修改，也可以粘贴 VS Code 里的 ai-commit.providers：驼峰键名会自动转换，id 会被去掉，vendor 按类型或 base_url 的域名推断。导入会替换全部服务。${env:NAME} 形式的 API Key 需要换成真实的 Key。"
+  },
+  "imported": {
+    "message": "已导入 $COUNT$ 个服务",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "invalidJson": {
+    "message": "JSON 格式不正确"
+  },
+  "save": {
+    "message": "保存"
+  },
+  "saved": {
+    "message": "已保存"
+  },
+  "savedWithoutPermission": {
+    "message": "已保存，但未获得访问权限，AI 服务暂时无法使用"
+  },
+  "saveFailed": {
+    "message": "保存失败"
+  },
+  "field_vendor": {
+    "message": "厂商"
+  },
+  "field_vendor_hint": {
+    "message": "例如 DeepSeek。厂商 + 模型 不能重复。"
+  },
+  "field_type": {
+    "message": "类型"
+  },
+  "field_model": {
+    "message": "模型"
+  },
+  "field_api_key": {
+    "message": "API Key"
+  },
+  "field_base_url": {
+    "message": "Base URL"
+  },
+  "field_endpoint": {
+    "message": "Endpoint"
+  },
+  "field_api_version": {
+    "message": "API 版本"
+  },
+  "field_deployment": {
+    "message": "Deployment"
+  },
+  "field_timeout_ms": {
+    "message": "超时（毫秒）"
+  },
+  "field_temperature": {
+    "message": "Temperature"
+  },
+  "field_top_p": {
+    "message": "Top P"
+  },
+  "field_max_tokens": {
+    "message": "最大 Token 数"
+  },
+  "field_headers": {
+    "message": "额外请求头（JSON）"
+  },
+  "editableTranslation": {
+    "message": "译文（可编辑）"
+  },
+  "noProviders": {
+    "message": "还没有 AI 服务。添加一个，就能用你自己的模型翻译评论。"
+  },
+  "defaultBadge": {
+    "message": "默认"
+  },
+  "editProvider": {
+    "message": "编辑"
+  },
+  "addProviderTitle": {
+    "message": "添加 AI 服务"
+  },
+  "editProviderTitle": {
+    "message": "编辑 $NAME$",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "cancel": {
+    "message": "取消"
+  },
+  "close": {
+    "message": "关闭"
+  },
+  "confirmRemove": {
+    "message": "删除 $NAME$？",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "removed": {
+    "message": "已删除"
+  },
+  "importReplace": {
+    "message": "导入并替换"
+  },
+  "copy": {
+    "message": "复制"
+  },
+  "copied": {
+    "message": "已复制"
+  },
+  "waitingForPermission": {
+    "message": "等待浏览器授权访问…"
+  },
+  "field_organization": {
+    "message": "Organization"
+  }
+}
