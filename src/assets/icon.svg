@@ -1,20 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <title>GitHub Comment Translator</title>
-  <!-- The Lucide "languages" glyph: the source character in a light tint, the translated "A" in white. -->
-  <!-- Chrome's icon guideline: 96x96 artwork with 16px of transparent padding on each side. -->
-  <g transform="translate(16 16) scale(0.75)">
-    <rect width="128" height="128" rx="28" fill="#f0643c"/>
-    <g transform="translate(64 64) scale(3.6) translate(-12 -12)" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-      <g stroke="#fdd5c8">
-        <path d="m5 8 6 6"/>
-        <path d="m4 14 6-6 2-3"/>
-        <path d="M2 5h12"/>
-        <path d="M7 2h1"/>
-      </g>
-      <g stroke="#fff">
-        <path d="m22 22-5-10-5 10"/>
-        <path d="M14 18h6"/>
-      </g>
-    </g>
-  </g>
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_2038_24)">
+<path d="M100 0H28C12.536 0 0 12.536 0 28V100C0 115.464 12.536 128 28 128H100C115.464 128 128 115.464 128 100V28C128 12.536 115.464 0 100 0Z" fill="#F0643C"/>
+<path d="M38.8 49.6L60.4 71.2" stroke="#FDD5C8" stroke-width="6.48" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M35.2 71.2L56.8 49.6L64 38.8" stroke="#FDD5C8" stroke-width="6.48" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M28 38.8H71.2" stroke="#FDD5C8" stroke-width="6.48" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M46 28H49.6" stroke="#FDD5C8" stroke-width="6.48" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M100 100L82 64L64 100" stroke="white" stroke-width="6.48" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M71.2 85.6H92.8" stroke="white" stroke-width="6.48" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<defs>
+<clipPath id="clip0_2038_24">
+<rect width="128" height="128" fill="white"/>
+</clipPath>
+</defs>
 </svg>
