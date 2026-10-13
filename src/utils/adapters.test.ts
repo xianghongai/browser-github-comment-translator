@@ -6,7 +6,7 @@ import { findCommentTargets } from './adapters';
 const REACT_ISSUE = `
 <div data-testid="issue-viewer-issue-container">
   <div data-testid="issue-body">
-    <div class="IssueBodyHeader-module__actionsSection__gnoaX"><button id="issue-menu"></button></div>
+    <div class="actionsSection__QKxX29"><button id="issue-menu"><svg class="octicon octicon-kebab-horizontal"></svg></button></div>
     <div data-testid="issue-body-viewer">
       <div data-testid="markdown-body" id="issue-md">
         <div class="markdown-body NewMarkdownViewer-module__safe-html-box__ZT1eD"><p>Issue body</p></div>

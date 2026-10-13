@@ -34,11 +34,11 @@ const reactIssueComment: Adapter = {
   },
 };
 
-/** React 版 Issue 的首楼：标题栏里的 ⋯ 菜单按钮位于 actionsSection 中。 */
+/** React 版 Issue 的首楼：按钮放在标题栏的 ⋯ 菜单按钮之前（CSS Modules 类名会变，按图标定位）。 */
 const reactIssueBody: Adapter = {
   find(root) {
     return Array.from(root.querySelectorAll('[data-testid="issue-body"]')).flatMap((container) => {
-      const anchor = container.querySelector('[class*="IssueBodyHeader-module__actionsSection"] > button:last-of-type');
+      const anchor = container.querySelector('button:has(> svg.octicon-kebab-horizontal)');
       const body = firstMarkdownBody(container, '[data-testid="markdown-body"]');
       return anchor && body ? [{ key: 'issue-body', container, anchor, body }] : [];
     });
