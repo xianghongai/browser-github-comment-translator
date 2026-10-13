@@ -21,13 +21,19 @@ const PLACEHOLDER_RULES = [
   'Do not translate code identifiers, file paths, CLI commands, URLs, @mentions or #references.',
   'Use natural wording that software developers would use.',
   'If a string is already in the target language, return it unchanged.',
+  // 翻译不需要推理；支持按提示词关闭思考的模型会直接作答，更快也更省 token。
+  'This is a direct translation task: answer immediately without extended reasoning or step-by-step thinking.',
 ].join(' ');
+
+/** Qwen3 等混合推理模型约定的关闭思考标记，放在系统提示词末尾；其它模型会忽略它。 */
+const NO_THINK = '/no_think';
 
 export function buildBatchSystemPrompt(targetLang: string): string {
   return [
     `You are a professional translator for GitHub discussions. Translate each string of the JSON array the user sends into ${describeLanguage(targetLang)}.`,
     PLACEHOLDER_RULES,
     'Reply with ONLY a JSON array of strings: same length, same order, no explanations, no code fences.',
+    NO_THINK,
   ].join('\n');
 }
 
@@ -36,6 +42,7 @@ export function buildSingleSystemPrompt(targetLang: string): string {
     `You are a professional translator for GitHub discussions. Translate the user's text into ${describeLanguage(targetLang)}.`,
     PLACEHOLDER_RULES,
     'Reply with ONLY the translation.',
+    NO_THINK,
   ].join('\n');
 }
 
