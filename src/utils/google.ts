@@ -1,9 +1,18 @@
 import { chunkByLength, mapWithConcurrency } from './concurrency';
 
-/** Google 翻译网页版使用的免费接口（非官方），sl=auto 自动识别源语言。 */
-const GOOGLE_TRANSLATE_ENDPOINT = 'https://translate.googleapis.com/translate_a/single';
+/**
+ * Google 翻译网页版使用的免费接口（非官方），sl=auto 自动识别源语言。
+ * 两个域名接口相同；Google 会按 IP 单独封锁其中一个（返回 429「Sorry...」页），被封时换另一个。
+ */
+const GOOGLE_TRANSLATE_ENDPOINTS = [
+  'https://translate.googleapis.com/translate_a/single',
+  'https://translate.google.com/translate_a/single',
+];
 const MAX_CHARS_PER_REQUEST = 4500;
 const CONCURRENCY = 4;
+
+/** 上一次可用的域名下标；后续请求直接从它开始，避免每次都先撞一次 429。 */
+let preferredEndpoint = 0;
 
 /**
  * 批量翻译文本段。
@@ -32,22 +41,31 @@ export async function translateWithGoogle(
 }
 
 async function requestGoogle(text: string, targetLang: string, signal?: AbortSignal): Promise<string> {
-  const url = new URL(GOOGLE_TRANSLATE_ENDPOINT);
+  const start = preferredEndpoint;
+  for (let attempt = 0; attempt < GOOGLE_TRANSLATE_ENDPOINTS.length; attempt++) {
+    const index = (start + attempt) % GOOGLE_TRANSLATE_ENDPOINTS.length;
+    const response = await fetchGoogle(GOOGLE_TRANSLATE_ENDPOINTS[index], text, targetLang, signal);
+    if (response.status === 429) {
+      continue;
+    }
+    if (!response.ok) {
+      throw new Error(`Google Translate request failed with HTTP ${response.status}`);
+    }
+    preferredEndpoint = index;
+    return parseGoogleResponse(await response.json());
+  }
+  throw new Error('Google Translate is rate limiting requests, try again later');
+}
+
+function fetchGoogle(endpoint: string, text: string, targetLang: string, signal?: AbortSignal): Promise<Response> {
+  const url = new URL(endpoint);
   url.search = new URLSearchParams({ client: 'gtx', sl: 'auto', tl: targetLang, dt: 't' }).toString();
-  const response = await fetch(url, {
+  return fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
     body: new URLSearchParams({ q: text }),
     signal,
   });
-  if (!response.ok) {
-    throw new Error(
-      response.status === 429
-        ? 'Google Translate is rate limiting requests, try again later'
-        : `Google Translate request failed with HTTP ${response.status}`
-    );
-  }
-  return parseGoogleResponse(await response.json());
 }
 
 /** 响应形如 `[[["译文", "原文", …], …], null, "en", …]`，按句拼接第一列。 */

@@ -8,7 +8,7 @@ export default defineConfig({
     description: '__MSG_appDesc__',
     default_locale: 'en',
     permissions: ['storage'],
-    host_permissions: ['https://translate.googleapis.com/*'],
+    host_permissions: ['https://translate.googleapis.com/*', 'https://translate.google.com/*'],
     // AI providers live at user-defined origins; each one is requested from the options page when it is saved.
     optional_host_permissions: ['https://*/*', 'http://*/*'],
     browser_specific_settings:

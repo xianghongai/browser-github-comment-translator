@@ -38,7 +38,7 @@ AI providers are listed one per row with **Test**, **Edit** and **Remove** actio
 
 When you save, the browser asks for access to each provider's host. API keys stay in this browser's local extension storage. Requests go from the extension background to the provider directly, so GitHub pages never see the keys.
 
-Google Translate uses the free `translate.googleapis.com` endpoint that translate.google.com uses. It is unofficial and may rate-limit heavy use.
+Google Translate uses the free `translate.googleapis.com` endpoint that translate.google.com uses, and switches to the same endpoint on `translate.google.com` when Google blocks the first host for your IP. It is unofficial and may rate-limit heavy use.
 
 ### Ollama
 
@@ -86,7 +86,7 @@ pnpm zip:all        # .output/*.zip for Chrome, Edge and Firefox
 
 保存时，浏览器会请求访问各服务所在主机的权限。API Key 只保存在本浏览器的扩展本地存储里；请求由扩展后台直接发给对应服务，GitHub 页面接触不到 Key。
 
-Google 翻译使用 translate.google.com 网页版所用的免费接口 `translate.googleapis.com`。它不是官方 API，使用过多时可能被限流。
+Google 翻译使用 translate.google.com 网页版所用的免费接口 `translate.googleapis.com`；Google 按 IP 封锁该域名时，改用 `translate.google.com` 上的同一接口。它不是官方 API，使用过多时可能被限流。
 
 ### Ollama
 
