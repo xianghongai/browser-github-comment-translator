@@ -16,26 +16,8 @@ export interface TestProviderRequest {
   target_lang: string;
 }
 
-export interface EnginesRequest {
-  type: 'gct:engines';
-}
-
-export interface OpenOptionsRequest {
-  type: 'gct:open-options';
-}
-
-export type Request = TranslateRequest | TestProviderRequest | EnginesRequest | OpenOptionsRequest;
+export type Request = TranslateRequest | TestProviderRequest;
 
 export type TranslateResponse =
   | { ok: true; translations: string[]; engineLabel: string }
   | { ok: false; error: string };
-
-export interface EngineOption {
-  engine: Engine;
-  label: string;
-}
-
-export interface EnginesResponse {
-  engines: EngineOption[];
-  defaultEngine: Engine;
-}

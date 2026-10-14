@@ -1,4 +1,4 @@
-/** Provider 类型与 vscode-ai-commit 的 `ai-commit.providers` 保持一致，便于直接粘贴导入。 */
+/** 支持的 Provider 类型，决定请求协议和需要填写的字段。 */
 export type ProviderType = 'openai' | 'openai-compatible' | 'openrouter' | 'gemini' | 'azure-openai' | 'ollama';
 
 export const PROVIDER_TYPES: readonly ProviderType[] = [

@@ -1,3 +1,4 @@
+import { ConfigError, isHttpUrl, type ConfigIssue } from '../config-error';
 import { DEFAULT_OLLAMA_BASE_URL } from './ollama';
 import { DEFAULT_OPENAI_BASE_URL } from './openaiCompatible';
 import { getProviderLabel, isSameProvider } from './shared';
@@ -16,23 +17,24 @@ type OpenAIChatSettingsEntry = Extract<ProviderSettingsEntry, { type: 'openai' |
 type AzureOpenAISettingsEntry = Extract<ProviderSettingsEntry, { type: 'azure-openai' }>;
 type GeminiSettingsEntry = Extract<ProviderSettingsEntry, { type: 'gemini' }>;
 
-const ENVIRONMENT_API_KEY_PATTERN = /^\$\{env:([A-Za-z_][A-Za-z0-9_]*)\}$/;
-
 /**
- * 将设置（或从 VS Code 粘贴）的未知输入收敛为可展示、可切换的 Provider 条目。
+ * 将设置或导入的未知输入收敛为可展示、可切换的 Provider 条目。
  *
  * api_key 在列表阶段允许缺省；协议地址、模型和其它结构字段仍按类型契约校验。
  */
 export function parseProviderConfigs(value: unknown): ProviderSettingsEntry[] {
   if (!Array.isArray(value)) {
-    throw new Error('[gct] providers must be an array');
+    throw invalid('[gct] providers must be an array');
   }
 
   const providers = value.map((item, index) => parseProviderConfig(item, index));
   // 厂商 + 模型 是唯一标识。
   providers.forEach((provider, index) => {
     if (providers.slice(0, index).some((other) => isSameProvider(other, provider))) {
-      throw new Error(`[gct] provider '${getProviderLabel(provider)}' is duplicated: vendor + model must be unique`);
+      throw new ConfigError(
+        `[gct] provider '${getProviderLabel(provider)}' is duplicated: vendor + model must be unique`,
+        { code: 'duplicate', scope: 'provider', index }
+      );
     }
   });
   return providers;
@@ -72,7 +74,7 @@ export function validateProviderConfig(conf: ProviderSettingsEntry, index = 0): 
 }
 
 function parseProviderConfig(value: unknown, index: number): ProviderSettingsEntry {
-  const record = requireRecord(normalizeProviderKeys(value), `providers[${index}]`);
+  const record = requireRecord(value, `providers[${index}]`, index);
   const type = requireString(record, 'type', index);
   const base = parseBaseProviderConfig(record, index);
 
@@ -89,14 +91,14 @@ function parseProviderConfig(value: unknown, index: number): ProviderSettingsEnt
     case 'ollama':
       return parseOllamaConfig(record, base, index);
     default:
-      throw new Error(`[gct] providers[${index}]: unknown type '${type}'`);
+      throw invalid(`[gct] providers[${index}]: unknown type '${type}'`, index, 'type');
   }
 }
 
 function parseBaseProviderConfig(record: ConfigRecord, index: number): Omit<BaseProviderConfig, 'type'> {
   const modelKind = optionalString(record, 'model_kind', index);
   if (modelKind !== undefined && modelKind !== 'chat') {
-    throw new Error(`[gct] providers[${index}].model_kind must be 'chat'`);
+    throw invalid(`[gct] providers[${index}].model_kind must be 'chat'`, index, 'model_kind');
   }
 
   return {
@@ -116,7 +118,11 @@ function parseOpenAIConfig(
   requireBaseUrl: boolean,
   index: number
 ): OpenAIChatSettingsEntry {
-  const baseUrl = requireBaseUrl ? requireString(record, 'base_url', index) : optionalString(record, 'base_url', index);
+  const baseUrl = httpUrl(
+    requireBaseUrl ? requireString(record, 'base_url', index) : optionalString(record, 'base_url', index),
+    'base_url',
+    index
+  );
   const apiKey = optionalString(record, 'api_key', index);
   const organization = optionalString(record, 'organization', index);
   if (type === 'openai') {
@@ -132,7 +138,7 @@ function parseOpenAIConfig(
     ...base,
     type,
     ...(apiKey ? { api_key: apiKey } : {}),
-    base_url: requireString(record, 'base_url', index),
+    base_url: httpUrl(requireString(record, 'base_url', index), 'base_url', index),
     ...(organization ? { organization } : {}),
   };
 }
@@ -145,7 +151,7 @@ function parseAzureOpenAIConfig(
   return {
     ...base,
     type: 'azure-openai',
-    endpoint: requireString(record, 'endpoint', index),
+    endpoint: httpUrl(requireString(record, 'endpoint', index), 'endpoint', index),
     ...optionalStringProperty(record, 'api_key', index),
     api_version: requireString(record, 'api_version', index),
     deployment: requireString(record, 'deployment', index),
@@ -168,63 +174,8 @@ function parseOllamaConfig(record: ConfigRecord, base: Omit<BaseProviderConfig, 
   return {
     ...base,
     type: 'ollama',
-    ...optionalStringProperty(record, 'base_url', index),
+    ...optionalUrlProperty(record, 'base_url', index),
   };
-}
-
-/**
- * 配置统一使用 snake_case；从 VS Code 粘贴的 ai-commit.providers 是驼峰（apiKey、baseUrl…），
- * 解析前转换键名。headers 的值是 HTTP 头名，不做转换。
- */
-export function normalizeProviderKeys(value: unknown): unknown {
-  if (!isConfigRecord(value)) {
-    return value;
-  }
-  const record = toSnakeCaseKeys(value);
-  if (isConfigRecord(record.params)) {
-    record.params = toSnakeCaseKeys(record.params);
-  }
-  // VS Code 的条目以 id 区分、没有 vendor；这里改用 厂商 + 模型 作为标识，id 不再使用。
-  if (record.vendor === undefined) {
-    const vendor = inferVendor(record);
-    if (vendor) {
-      record.vendor = vendor;
-    }
-  }
-  delete record.id;
-  return record;
-}
-
-const VENDOR_BY_TYPE: Record<string, string> = {
-  openai: 'OpenAI',
-  openrouter: 'OpenRouter',
-  'azure-openai': 'Azure',
-  gemini: 'Gemini',
-  ollama: 'Ollama',
-};
-
-/** 按类型推断厂商；OpenAI-compatible 取 base_url 的主域名，例如 api.deepseek.com → deepseek。 */
-export function inferVendor(record: ConfigRecord): string | undefined {
-  if (typeof record.type === 'string' && VENDOR_BY_TYPE[record.type]) {
-    return VENDOR_BY_TYPE[record.type];
-  }
-  if (typeof record.base_url !== 'string') {
-    return undefined;
-  }
-  try {
-    const { hostname } = new URL(record.base_url);
-    const labels = hostname.split('.');
-    // IP 地址与 localhost 原样使用；域名取倒数第二段（去掉 api. / www. 等子域与顶级域）。
-    return /^[\d.]+$/.test(hostname) || labels.length < 2 ? hostname : labels[labels.length - 2];
-  } catch {
-    return undefined;
-  }
-}
-
-export function toSnakeCaseKeys(record: ConfigRecord): ConfigRecord {
-  return Object.fromEntries(
-    Object.entries(record).map(([key, value]) => [key.replace(/[A-Z]/g, (char) => `_${char.toLowerCase()}`), value])
-  );
 }
 
 function parseHeadersProperty(record: ConfigRecord, index: number): Pick<BaseProviderConfig, 'headers'> {
@@ -232,11 +183,11 @@ function parseHeadersProperty(record: ConfigRecord, index: number): Pick<BasePro
   if (value === undefined) {
     return {};
   }
-  const headers = requireRecord(value, `providers[${index}].headers`);
+  const headers = requireRecord(value, `providers[${index}].headers`, index, 'headers');
   const parsedHeaders: Record<string, string> = {};
   for (const [name, headerValue] of Object.entries(headers)) {
     if (typeof headerValue !== 'string') {
-      throw new Error(`[gct] providers[${index}].headers.${name} must be a string`);
+      throw invalid(`[gct] providers[${index}].headers.${name} must be a string`, index, 'headers');
     }
     parsedHeaders[name] = headerValue;
   }
@@ -247,21 +198,21 @@ function parseParamsProperty(record: ConfigRecord, index: number): Pick<BaseProv
   if (record.params === undefined) {
     return {};
   }
-  const paramsRecord = requireRecord(record.params, `providers[${index}].params`);
+  const paramsRecord = requireRecord(record.params, `providers[${index}].params`, index);
   const params: ChatGenerationParams = {
-    ...optionalNumberProperty(paramsRecord, 'temperature', `providers[${index}].params`),
-    ...optionalNumberProperty(paramsRecord, 'top_p', `providers[${index}].params`),
-    ...optionalNumberProperty(paramsRecord, 'max_tokens', `providers[${index}].params`),
+    ...optionalNumberProperty(paramsRecord, 'temperature', `providers[${index}].params`, index),
+    ...optionalNumberProperty(paramsRecord, 'top_p', `providers[${index}].params`, index),
+    ...optionalNumberProperty(paramsRecord, 'max_tokens', `providers[${index}].params`, index),
   };
 
   if (params.temperature !== undefined && (params.temperature < 0 || params.temperature > 2)) {
-    throw new Error(`[gct] providers[${index}].params.temperature must be between 0 and 2`);
+    throw invalid(`[gct] providers[${index}].params.temperature must be between 0 and 2`, index, 'temperature');
   }
   if (params.top_p !== undefined && (params.top_p < 0 || params.top_p > 1)) {
-    throw new Error(`[gct] providers[${index}].params.top_p must be between 0 and 1`);
+    throw invalid(`[gct] providers[${index}].params.top_p must be between 0 and 1`, index, 'top_p');
   }
   if (params.max_tokens !== undefined && params.max_tokens < 1) {
-    throw new Error(`[gct] providers[${index}].params.max_tokens must be at least 1`);
+    throw invalid(`[gct] providers[${index}].params.max_tokens must be at least 1`, index, 'max_tokens');
   }
   return { params };
 }
@@ -272,21 +223,26 @@ function optionalStringProperty(record: ConfigRecord, key: string, index: number
 }
 
 function optionalPositiveNumberProperty(record: ConfigRecord, key: string, index: number): Record<string, number> {
-  const property = optionalNumberProperty(record, key, `providers[${index}]`);
+  const property = optionalNumberProperty(record, key, `providers[${index}]`, index);
   const value = property[key];
   if (value !== undefined && value <= 0) {
-    throw new Error(`[gct] providers[${index}].${key} must be greater than 0`);
+    throw invalid(`[gct] providers[${index}].${key} must be greater than 0`, index, key);
   }
   return property;
 }
 
-function optionalNumberProperty(record: ConfigRecord, key: string, path: string): Record<string, number> {
+function optionalNumberProperty(
+  record: ConfigRecord,
+  key: string,
+  path: string,
+  index: number
+): Record<string, number> {
   const value = record[key];
   if (value === undefined) {
     return {};
   }
   if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new Error(`[gct] ${path}.${key} must be a finite number`);
+    throw invalid(`[gct] ${path}.${key} must be a finite number`, index, key);
   }
   return { [key]: value };
 }
@@ -294,20 +250,21 @@ function optionalNumberProperty(record: ConfigRecord, key: string, path: string)
 function requireString(record: ConfigRecord, key: string, index: number): string {
   const value = record[key];
   if (typeof value !== 'string' || !value.trim()) {
-    throw new Error(`[gct] providers[${index}].${key} is required`);
+    throw new ConfigError(`[gct] providers[${index}].${key} is required`, {
+      code: 'required',
+      scope: 'provider',
+      index,
+      field: key,
+    });
   }
   return value.trim();
 }
 
 function requireActiveApiKey(value: string | undefined, label: string, index: number): string {
   if (!value) {
-    throw new Error(`[gct] provider '${label}' (providers[${index}]).api_key is required for the active provider`);
-  }
-  // 从 VS Code 粘贴过来的 `${env:NAME}` 在浏览器里无法解析，必须换成真实的 Key。
-  const environmentReference = ENVIRONMENT_API_KEY_PATTERN.exec(value);
-  if (environmentReference) {
-    throw new Error(
-      `[gct] provider '${label}' references environment variable '${environmentReference[1]}' for api_key, which browsers cannot read; paste the key itself`
+    throw new ConfigError(
+      `[gct] provider '${label}' (providers[${index}]).api_key is required for the active provider`,
+      { code: 'required', scope: 'provider', index, field: 'api_key' }
     );
   }
   return value;
@@ -319,16 +276,38 @@ function optionalString(record: ConfigRecord, key: string, index: number): strin
     return undefined;
   }
   if (typeof value !== 'string') {
-    throw new Error(`[gct] providers[${index}].${key} must be a string`);
+    throw invalid(`[gct] providers[${index}].${key} must be a string`, index, key);
   }
   return value.trim() || undefined;
 }
 
-function requireRecord(value: unknown, path: string): ConfigRecord {
+function requireRecord(value: unknown, path: string, index: number, field?: string): ConfigRecord {
   if (!isConfigRecord(value)) {
-    throw new Error(`[gct] ${path} must be an object`);
+    throw invalid(`[gct] ${path} must be an object`, index, field);
   }
   return value;
+}
+
+function httpUrl<T extends string | undefined>(value: T, key: string, index: number): T {
+  if (value !== undefined && !isHttpUrl(value)) {
+    throw new ConfigError(`[gct] providers[${index}].${key} must be an http(s) URL`, {
+      code: 'url',
+      scope: 'provider',
+      index,
+      field: key,
+    });
+  }
+  return value;
+}
+
+function optionalUrlProperty(record: ConfigRecord, key: string, index: number): Record<string, string> {
+  const value = httpUrl(optionalString(record, key, index), key, index);
+  return value === undefined ? {} : { [key]: value };
+}
+
+function invalid(message: string, index?: number, field?: string): ConfigError {
+  const issue: ConfigIssue = { code: 'invalid', scope: 'provider', index, field };
+  return new ConfigError(message, issue);
 }
 
 function isConfigRecord(value: unknown): value is ConfigRecord {

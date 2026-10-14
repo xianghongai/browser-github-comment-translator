@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildAzureOpenAIChatRequest, buildAzureOpenAIEndpoint } from './azureOpenAI';
-import { getProviderOriginPattern, inferVendor, parseProviderConfigs, selectActiveProvider } from './config';
+import { getProviderOriginPattern, parseProviderConfigs, selectActiveProvider } from './config';
 import { createClient } from './factory';
 import { buildGeminiEndpoint, buildGeminiRequest, parseGeminiResponse } from './gemini';
 import { buildOllamaChatRequest, parseOllamaChatResponse } from './ollama';
@@ -32,6 +32,31 @@ describe('request builders', () => {
       messages
     );
     expect(request).toEqual({ model: 'model', messages, temperature: 0.4, top_p: 0.8, max_tokens: 256 });
+  });
+
+  it('leaves generation params to the service when none are configured', () => {
+    const conf = {
+      vendor: 'anthropic',
+      type: 'openai-compatible',
+      base_url: 'https://api.anthropic.com/v1',
+      api_key: 'key',
+      model: 'model',
+    } as const;
+    expect(buildOpenAIChatRequest(conf, messages)).toEqual({ model: 'model', messages });
+    expect(
+      buildAzureOpenAIChatRequest(
+        {
+          vendor: 'azure',
+          type: 'azure-openai',
+          endpoint: 'https://r.example',
+          api_key: 'k',
+          api_version: 'v',
+          deployment: 'd',
+          model: 'model',
+        },
+        messages
+      )
+    ).toEqual({ model: 'model', messages });
   });
 
   it('routes Azure requests through the deployment and api-version', () => {
@@ -214,38 +239,6 @@ describe('provider config', () => {
     expect(() => selectActiveProvider(providers, { vendor: 'local', model: 'other' })).toThrow(/was not found/);
   });
 
-  it('explains that VS Code environment placeholders cannot be used in the browser', () => {
-    const providers = parseProviderConfigs([{ vendor: 'g', type: 'gemini', model: 'm', api_key: '${env:GEMINI_KEY}' }]);
-    expect(() => selectActiveProvider(providers, { vendor: 'g', model: 'm' })).toThrow(
-      /environment variable 'GEMINI_KEY'.*browsers cannot read/
-    );
-  });
-
-  it('imports camelCase ai-commit.providers from VS Code as snake_case', () => {
-    const [provider] = parseProviderConfigs([
-      {
-        id: 'deepseek-ai/DeepSeek-V4-Flash',
-        type: 'openai-compatible',
-        baseUrl: 'https://api.deepseek.com/v1',
-        apiKey: 'sk',
-        model: 'deepseek-chat',
-        timeoutMs: 60000,
-        headers: { 'X-Title': 'gct' },
-        params: { maxTokens: 512 },
-      },
-    ]);
-    expect(provider).toEqual({
-      vendor: 'deepseek',
-      type: 'openai-compatible',
-      base_url: 'https://api.deepseek.com/v1',
-      api_key: 'sk',
-      model: 'deepseek-chat',
-      timeout_ms: 60000,
-      headers: { 'X-Title': 'gct' },
-      params: { max_tokens: 512 },
-    });
-  });
-
   it('validates provider-specific required fields', () => {
     expect(() => parseProviderConfigs([{ vendor: 'c', type: 'openai-compatible', model: 'm', api_key: 'k' }])).toThrow(
       /base_url is required/
@@ -253,13 +246,6 @@ describe('provider config', () => {
     expect(() => parseProviderConfigs([{ vendor: 'a', type: 'azure-openai', model: 'm', api_key: 'k' }])).toThrow(
       /endpoint is required/
     );
-  });
-
-  it('infers the vendor from the type or the base_url host', () => {
-    expect(inferVendor({ type: 'gemini' })).toBe('Gemini');
-    expect(inferVendor({ type: 'openai-compatible', base_url: 'https://api.siliconflow.cn/v1' })).toBe('siliconflow');
-    expect(inferVendor({ type: 'openai-compatible', base_url: 'http://127.0.0.1:8080/v1' })).toBe('127.0.0.1');
-    expect(inferVendor({ type: 'openai-compatible', base_url: 'not a url' })).toBeUndefined();
   });
 
   it('derives host permission patterns without ports', () => {

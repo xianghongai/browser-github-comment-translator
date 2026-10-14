@@ -1,3 +1,4 @@
+import { ConfigError } from '../../utils/config-error';
 import type { ProviderSettingsEntry, ProviderType } from '../../utils/providers/types';
 
 /** 表单里一个 Provider 的原始输入；全部是字符串，保存时再统一交给 parseProviderConfigs 校验。 */
@@ -81,7 +82,7 @@ export function entryToFields(entry: ProviderSettingsEntry): ProviderFields {
   return fields;
 }
 
-/** 只输出当前类型用得到的字段，交给 parseProviderConfigs 做与 vscode-ai-commit 一致的校验。 */
+/** 只输出当前类型用得到的字段，交给 parseProviderConfigs 校验。 */
 export function fieldsToRaw(fields: ProviderFields, index: number): Record<string, unknown> {
   const raw: Record<string, unknown> = {};
   for (const name of [...COMMON_FIELDS, ...TYPE_FIELDS[fields.type]]) {
@@ -108,7 +109,12 @@ export function fieldsToRaw(fields: ProviderFields, index: number): Record<strin
     try {
       raw.headers = JSON.parse(fields.headers);
     } catch {
-      throw new Error(`[gct] providers[${index}].headers must be a JSON object`);
+      throw new ConfigError(`[gct] providers[${index}].headers must be a JSON object`, {
+        code: 'invalid',
+        scope: 'provider',
+        index,
+        field: 'headers',
+      });
     }
   }
   return raw;

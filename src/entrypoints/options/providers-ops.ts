@@ -1,6 +1,8 @@
-import { GOOGLE_ENGINE, isSameEngine, toProviderRef } from '../../utils/engine';
+import { GOOGLE_ENGINE, isSameEngine, toProviderRef, type Engine } from '../../utils/engine';
 import { getProviderOriginPattern, parseProviderConfigs } from '../../utils/providers/config';
+import type { ProviderSettingsEntry } from '../../utils/providers/types';
 import type { Settings } from '../../utils/settings';
+import { parseVendorPresets } from '../../utils/vendors';
 
 /** 一次修改的结果：新的设置，以及需要申请 host 权限的地址。 */
 export interface ProvidersChange {
@@ -38,15 +40,38 @@ export function removeProvider(settings: Settings, index: number): Settings {
   };
 }
 
-/** 用导入的 JSON 替换全部 Provider；原默认引擎仍存在则保留，否则回到 Google 翻译。 */
-export function replaceProviders(settings: Settings, value: unknown): ProvidersChange {
-  const providers = parseProviderConfigs(value);
-  const engine =
-    settings.engine !== GOOGLE_ENGINE && !providers.some((provider) => isSameEngine(settings.engine, provider))
-      ? GOOGLE_ENGINE
-      : settings.engine;
+/** 导出全部设置，用于在另一台电脑上导入。 */
+export function exportConfig(settings: Settings): Settings {
+  const { target_lang, engine, providers, vendors } = settings;
+  return { target_lang, engine, providers, vendors };
+}
+
+/**
+ * 导入 exportConfig 导出的内容，替换全部设置；内容无法识别时返回 undefined。
+ * 默认引擎指向的服务不在导入的列表里时，回到 Google 翻译。
+ */
+export function importConfig(settings: Settings, value: unknown): ProvidersChange | undefined {
+  if (!isRecord(value) || !Array.isArray(value.providers) || !Array.isArray(value.vendors)) {
+    return undefined;
+  }
+  const providers = parseProviderConfigs(value.providers);
+  const vendors = parseVendorPresets(value.vendors);
+  const target_lang =
+    typeof value.target_lang === 'string' && value.target_lang ? value.target_lang : settings.target_lang;
   return {
-    settings: { ...settings, providers, engine },
+    settings: { target_lang, engine: toImportedEngine(value.engine, providers), providers, vendors },
     origins: [...new Set(providers.map(getProviderOriginPattern))],
   };
+}
+
+function toImportedEngine(value: unknown, providers: ProviderSettingsEntry[]): Engine {
+  if (!isRecord(value) || typeof value.vendor !== 'string' || typeof value.model !== 'string') {
+    return GOOGLE_ENGINE;
+  }
+  const ref = toProviderRef({ vendor: value.vendor, model: value.model });
+  return providers.some((provider) => isSameEngine(ref, provider)) ? ref : GOOGLE_ENGINE;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

@@ -2,7 +2,7 @@ import { chunkByLength, mapWithConcurrency } from './concurrency';
 
 /**
  * Google 翻译网页版使用的免费接口（非官方），sl=auto 自动识别源语言。
- * 两个域名接口相同；Google 会按 IP 单独封锁其中一个（返回 429「Sorry...」页），被封时换另一个。
+ * 两个域名接口相同；Google 会按 IP 单独封锁其中一个（返回 429 或跳转到「Sorry...」页），被封时换另一个。
  */
 const GOOGLE_TRANSLATE_ENDPOINTS = [
   'https://translate.googleapis.com/translate_a/single',
@@ -42,10 +42,23 @@ export async function translateWithGoogle(
 
 async function requestGoogle(text: string, targetLang: string, signal?: AbortSignal): Promise<string> {
   const start = preferredEndpoint;
+  let networkError: unknown;
+  let rateLimited = false;
   for (let attempt = 0; attempt < GOOGLE_TRANSLATE_ENDPOINTS.length; attempt++) {
     const index = (start + attempt) % GOOGLE_TRANSLATE_ENDPOINTS.length;
-    const response = await fetchGoogle(GOOGLE_TRANSLATE_ENDPOINTS[index], text, targetLang, signal);
-    if (response.status === 429) {
+    let response: Response;
+    try {
+      response = await fetchGoogle(GOOGLE_TRANSLATE_ENDPOINTS[index], text, targetLang, signal);
+    } catch (error) {
+      if (signal?.aborted) {
+        throw error;
+      }
+      networkError = error;
+      continue;
+    }
+    // 被封时可能直接返回 429，也可能 302 跳到 www.google.com/sorry。
+    if (response.status === 429 || response.type === 'opaqueredirect') {
+      rateLimited = true;
       continue;
     }
     if (!response.ok) {
@@ -54,7 +67,10 @@ async function requestGoogle(text: string, targetLang: string, signal?: AbortSig
     preferredEndpoint = index;
     return parseGoogleResponse(await response.json());
   }
-  throw new Error('Google Translate is rate limiting requests, try again later');
+  if (rateLimited || !networkError) {
+    throw new Error('Google Translate is rate limiting requests, try again later');
+  }
+  throw networkError;
 }
 
 function fetchGoogle(endpoint: string, text: string, targetLang: string, signal?: AbortSignal): Promise<Response> {
@@ -62,6 +78,8 @@ function fetchGoogle(endpoint: string, text: string, targetLang: string, signal?
   url.search = new URLSearchParams({ client: 'gtx', sl: 'auto', tl: targetLang, dt: 't' }).toString();
   return fetch(url, {
     method: 'POST',
+    // 不跟随跳转：跳到 www.google.com/sorry 是跨域的，会被 CORS 拦成无法区分的网络错误。
+    redirect: 'manual',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
     body: new URLSearchParams({ q: text }),
     signal,

@@ -17,8 +17,8 @@
   "showTranslation": {
     "message": "显示译文"
   },
-  "chooseEngine": {
-    "message": "选择翻译引擎…"
+  "translationEngine": {
+    "message": "翻译引擎"
   },
   "settings": {
     "message": "设置"
@@ -50,13 +50,13 @@
     "message": "默认引擎"
   },
   "defaultEngineHint": {
-    "message": "点击翻译按钮时使用。想让某一条评论换个引擎，可用按钮旁边的下拉箭头。"
+    "message": "点击翻译按钮时使用。也可以点浏览器工具栏中的扩展图标切换。"
   },
   "aiProviders": {
     "message": "AI 模型服务"
   },
   "aiProvidersHint": {
-    "message": "每个服务以「厂商 + 模型」区分。与 AI Commit++ 的 ai-commit.providers 支持相同的服务，键名使用 snake_case。API Key 只保存在本浏览器，只会发给你配置的服务。"
+    "message": "API Key 只保存在本浏览器，只会发给对应的服务。"
   },
   "addProvider": {
     "message": "添加服务"
@@ -85,18 +85,10 @@
     "message": "导入 / 导出"
   },
   "importExportHint": {
-    "message": "下面是当前的服务列表 JSON（snake_case 键名，如 vendor、api_key、base_url）。可以直接修改，也可以粘贴 VS Code 里的 ai-commit.providers：驼峰键名会自动转换，id 会被去掉，vendor 按类型或 base_url 的域名推断。导入会替换全部服务。${env:NAME} 形式的 API Key 需要换成真实的 Key。"
+    "message": "要迁移到另一台电脑，复制下面的全部内容，到那边的「导入 / 导出」里粘贴并导入即可。导入会替换当前的全部设置。内容包含 API Key，请妥善保管。"
   },
   "imported": {
-    "message": "已导入 $COUNT$ 个服务",
-    "placeholders": {
-      "count": {
-        "content": "$1"
-      }
-    }
-  },
-  "invalidJson": {
-    "message": "JSON 格式不正确"
+    "message": "设置已导入"
   },
   "save": {
     "message": "保存"
@@ -114,7 +106,7 @@
     "message": "厂商"
   },
   "field_vendor_hint": {
-    "message": "例如 DeepSeek。厂商 + 模型 不能重复。"
+    "message": "选择预设会自动填入类型和 Base URL；列表里没有就选「自定义…」。"
   },
   "field_type": {
     "message": "类型"
@@ -193,7 +185,7 @@
     "message": "已删除"
   },
   "importReplace": {
-    "message": "导入并替换"
+    "message": "导入"
   },
   "copy": {
     "message": "复制"
@@ -206,5 +198,126 @@
   },
   "field_organization": {
     "message": "Organization"
+  },
+  "vendorPresets": {
+    "message": "厂商预设"
+  },
+  "vendorPresetsHint": {
+    "message": "添加服务时选择这里的厂商，会自动填入类型和 Base URL。"
+  },
+  "vendorCount": {
+    "message": "$COUNT$ 个预设",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "noVendors": {
+    "message": "没有厂商预设。可以添加，或恢复内置预设。"
+  },
+  "addVendor": {
+    "message": "添加预设"
+  },
+  "addVendorTitle": {
+    "message": "添加厂商预设"
+  },
+  "restoreVendors": {
+    "message": "恢复内置预设"
+  },
+  "vendorsRestored": {
+    "message": "已补回 $ADDED$ 个、还原 $RESET$ 个内置预设",
+    "placeholders": {
+      "added": {
+        "content": "$1"
+      },
+      "reset": {
+        "content": "$2"
+      }
+    }
+  },
+  "vendorsUpToDate": {
+    "message": "内置预设都在列表里，且未被修改"
+  },
+  "customVendor": {
+    "message": "自定义…"
+  },
+  "confirmRestoreVendors": {
+    "message": "恢复后会覆盖你对以下内置预设的修改："
+  },
+  "builtInBadge": {
+    "message": "默认"
+  },
+  "customBadge": {
+    "message": "自定义"
+  },
+  "editedBadge": {
+    "message": "已修改"
+  },
+  "editedBadgeTitle": {
+    "message": "默认值：$DEFAULT$。「恢复内置预设」会改回默认值。",
+    "placeholders": {
+      "default": {
+        "content": "$1"
+      }
+    }
+  },
+  "invalidImport": {
+    "message": "内容无法识别。请在另一台电脑上重新完整复制导出的内容，再粘贴到这里。"
+  },
+  "importPlaceholder": {
+    "message": "粘贴从另一台电脑导出的内容"
+  },
+  "configRequired": {
+    "message": "请填写「$FIELD$」",
+    "placeholders": {
+      "field": {
+        "content": "$1"
+      }
+    }
+  },
+  "configInvalid": {
+    "message": "「$FIELD$」的值不正确",
+    "placeholders": {
+      "field": {
+        "content": "$1"
+      }
+    }
+  },
+  "configInvalidUrl": {
+    "message": "「$FIELD$」需要是以 https:// 或 http:// 开头的网址",
+    "placeholders": {
+      "field": {
+        "content": "$1"
+      }
+    }
+  },
+  "providerDuplicate": {
+    "message": "这个厂商和模型已经添加过了"
+  },
+  "vendorDuplicate": {
+    "message": "这个厂商已经在预设里了"
+  },
+  "importProviderItem": {
+    "message": "第 $NUMBER$ 个服务：$MESSAGE$",
+    "placeholders": {
+      "number": {
+        "content": "$1"
+      },
+      "message": {
+        "content": "$2"
+      }
+    }
+  },
+  "importVendorItem": {
+    "message": "第 $NUMBER$ 个厂商预设：$MESSAGE$",
+    "placeholders": {
+      "number": {
+        "content": "$1"
+      },
+      "message": {
+        "content": "$2"
+      }
+    }
   }
 }

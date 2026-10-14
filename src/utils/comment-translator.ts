@@ -1,8 +1,7 @@
-import { ChevronDown, Languages, LoaderCircle, Check, Settings as SettingsIcon, createElement } from 'lucide';
+import { Globe, LoaderCircle, createElement } from 'lucide';
 import { browser } from 'wxt/browser';
 import { TRANSLATION_CLASS, UI_CLASS, findCommentTargets, type CommentTarget } from './adapters';
-import { GOOGLE_ENGINE, isSameEngine, type Engine } from './engine';
-import type { EnginesResponse, Request, TranslateResponse } from './messages';
+import type { Request, TranslateResponse } from './messages';
 import { applyTranslation, collectSegments } from './segments';
 
 type Status = 'idle' | 'loading' | 'shown' | 'hidden' | 'error';
@@ -23,7 +22,6 @@ interface CommentState {
 interface ActionsUI {
   root: HTMLElement;
   button: HTMLButtonElement;
-  menuButton: HTMLButtonElement;
 }
 
 /** 面板只放译文；message 仅在出错或无内容可译时出现。 */
@@ -33,12 +31,10 @@ interface TranslationPanel {
   content: HTMLElement;
 }
 
-const COMMENT_ATTRIBUTE = 'data-gct-comment';
-
 const t = (key: string, substitutions?: string | string[]) => browser.i18n.getMessage(key as never, substitutions);
 
-function icon(node: Parameters<typeof createElement>[0], size = 16): SVGElement {
-  return createElement(node, { width: size, height: size, 'aria-hidden': 'true', focusable: 'false' });
+function icon(node: Parameters<typeof createElement>[0]): SVGElement {
+  return createElement(node, { width: 16, height: 16, 'aria-hidden': 'true', focusable: 'false' });
 }
 
 export class CommentTranslator {
@@ -46,7 +42,6 @@ export class CommentTranslator {
   private readonly states = new Map<string, CommentState>();
   private path = location.pathname;
   private scanScheduled = false;
-  private menu?: HTMLElement;
 
   start(): void {
     this.scan();
@@ -79,10 +74,6 @@ export class CommentTranslator {
 
   /** 给评论挂上按钮；评论被重新挂载时复用原有状态，把按钮和译文接回新的 DOM。 */
   private attach(target: CommentTarget): void {
-    // 悬停整条评论时才显示按钮；用 data 属性而不是 class，React 重新渲染不会覆盖它。
-    if (!target.container.hasAttribute(COMMENT_ATTRIBUTE)) {
-      target.container.setAttribute(COMMENT_ATTRIBUTE, '');
-    }
     let state = this.states.get(target.key);
     if (!state) {
       state = { body: target.body, status: 'idle', requestId: 0, ui: undefined! };
@@ -115,29 +106,15 @@ export class CommentTranslator {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'gct-button';
-    button.append(icon(Languages));
+    button.append(icon(Globe));
     button.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
       this.toggle(state);
     });
 
-    const menuButton = document.createElement('button');
-    menuButton.type = 'button';
-    menuButton.className = 'gct-button gct-menu-button';
-    menuButton.setAttribute('aria-haspopup', 'menu');
-    menuButton.setAttribute('aria-expanded', 'false');
-    menuButton.setAttribute('aria-label', t('chooseEngine'));
-    menuButton.title = t('chooseEngine');
-    menuButton.append(icon(ChevronDown, 12));
-    menuButton.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      void this.openMenu(state, menuButton);
-    });
-
-    root.append(button, menuButton);
-    const ui = { root, button, menuButton };
+    root.append(button);
+    const ui = { root, button };
     this.renderButton(ui, 'idle');
     return ui;
   }
@@ -154,11 +131,9 @@ export class CommentTranslator {
     const label = engineLabel && (status === 'shown' || status === 'hidden') ? `${action} · ${engineLabel}` : action;
     ui.button.setAttribute('aria-label', label);
     ui.button.title = label;
-    // 翻译过的评论始终显示按钮，否则用户找不到隐藏/显示译文的入口。
-    ui.root.toggleAttribute('data-active', status !== 'idle');
     ui.button.setAttribute('aria-pressed', String(status === 'shown'));
     ui.button.disabled = status === 'loading';
-    ui.button.replaceChildren(icon(status === 'loading' ? LoaderCircle : Languages));
+    ui.button.replaceChildren(icon(status === 'loading' ? LoaderCircle : Globe));
     ui.button.classList.toggle('gct-loading', status === 'loading');
   }
 
@@ -186,7 +161,7 @@ export class CommentTranslator {
   }
 
   /** 翻译期间只让按钮转圈；已有译文时保留旧译文直到新结果返回。 */
-  private async translate(state: CommentState, engine?: Engine): Promise<void> {
+  private async translate(state: CommentState): Promise<void> {
     const requestId = ++state.requestId;
     this.setStatus(state, 'loading');
 
@@ -202,7 +177,6 @@ export class CommentTranslator {
     try {
       response = await browser.runtime.sendMessage<Request, TranslateResponse>({
         type: 'gct:translate',
-        engine,
         texts: segments.map(({ text }) => text),
       });
     } catch (error) {
@@ -212,7 +186,7 @@ export class CommentTranslator {
       return;
     }
     if (!response?.ok) {
-      this.showMessage(state, t('translationFailed', response?.error ?? ''), true, engine);
+      this.showMessage(state, t('translationFailed', response?.error ?? ''), true);
       return;
     }
 
@@ -228,7 +202,7 @@ export class CommentTranslator {
     this.setStatus(state, 'shown');
   }
 
-  private showMessage(state: CommentState, message: string, isError: boolean, engine?: Engine) {
+  private showMessage(state: CommentState, message: string, isError: boolean) {
     const panel = this.ensurePanel(state);
     panel.root.hidden = false;
     panel.root.dataset.state = isError ? 'error' : 'empty';
@@ -240,7 +214,7 @@ export class CommentTranslator {
       retry.type = 'button';
       retry.className = 'gct-link-button';
       retry.textContent = t('retry');
-      retry.addEventListener('click', () => void this.translate(state, engine));
+      retry.addEventListener('click', () => void this.translate(state));
       panel.message.append(retry);
     }
     this.setStatus(state, isError ? 'error' : 'idle');
@@ -278,98 +252,6 @@ export class CommentTranslator {
     makeTemporarilyEditable(content);
     root.append(message, content);
     return { root, message, content };
-  }
-
-  /** 引擎菜单：选中后立即用该引擎重新翻译这一条评论，不修改默认设置。 */
-  private async openMenu(state: CommentState, anchor: HTMLButtonElement): Promise<void> {
-    if (this.menu) {
-      const wasOpenHere = anchor.getAttribute('aria-expanded') === 'true';
-      this.closeMenu();
-      if (wasOpenHere) {
-        return;
-      }
-    }
-    const { engines, defaultEngine } = await browser.runtime
-      .sendMessage<Request, EnginesResponse>({ type: 'gct:engines' })
-      .catch((): EnginesResponse => ({ engines: [], defaultEngine: GOOGLE_ENGINE }));
-
-    const menu = document.createElement('div');
-    menu.className = 'gct-menu';
-    menu.setAttribute('role', 'menu');
-    for (const option of engines) {
-      menu.append(
-        this.menuItem(option.label, isSameEngine(option.engine, defaultEngine) ? Check : undefined, () => {
-          void this.translate(state, option.engine);
-        })
-      );
-    }
-    menu.append(Object.assign(document.createElement('div'), { className: 'gct-menu-divider', role: 'separator' }));
-    menu.append(
-      this.menuItem(t('settings'), SettingsIcon, () => {
-        void browser.runtime.sendMessage<Request>({ type: 'gct:open-options' });
-      })
-    );
-
-    document.body.append(menu);
-    // 名称过长时单行截断，只有被截断的项才用原生 title 显示完整名称。
-    for (const label of Array.from(menu.querySelectorAll<HTMLElement>('.gct-menu-label'))) {
-      if (label.scrollWidth > label.clientWidth) {
-        label.closest('.gct-menu-item')?.setAttribute('title', label.textContent ?? '');
-      }
-    }
-    const rect = anchor.getBoundingClientRect();
-    const left = Math.max(8, Math.min(rect.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 8));
-    menu.style.top = `${rect.bottom + window.scrollY + 4}px`;
-    menu.style.left = `${left + window.scrollX}px`;
-    anchor.setAttribute('aria-expanded', 'true');
-    this.menu = menu;
-
-    const onPointerDown = (event: PointerEvent) => {
-      if (!menu.contains(event.target as Node) && event.target !== anchor && !anchor.contains(event.target as Node)) {
-        this.closeMenu();
-      }
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        this.closeMenu();
-        anchor.focus();
-      }
-    };
-    document.addEventListener('pointerdown', onPointerDown, true);
-    document.addEventListener('keydown', onKeyDown, true);
-    menu.addEventListener('gct:close', () => {
-      document.removeEventListener('pointerdown', onPointerDown, true);
-      document.removeEventListener('keydown', onKeyDown, true);
-      anchor.setAttribute('aria-expanded', 'false');
-    });
-    menu.querySelector<HTMLButtonElement>('button')?.focus();
-  }
-
-  private menuItem(label: string, leading: Parameters<typeof createElement>[0] | undefined, onSelect: () => void) {
-    const item = document.createElement('button');
-    item.type = 'button';
-    item.className = 'gct-menu-item';
-    item.setAttribute('role', 'menuitem');
-    const slot = document.createElement('span');
-    slot.className = 'gct-menu-icon';
-    if (leading) {
-      slot.append(icon(leading));
-    }
-    const labelElement = document.createElement('span');
-    labelElement.className = 'gct-menu-label';
-    labelElement.textContent = label;
-    item.append(slot, labelElement);
-    item.addEventListener('click', () => {
-      this.closeMenu();
-      onSelect();
-    });
-    return item;
-  }
-
-  private closeMenu(): void {
-    this.menu?.dispatchEvent(new Event('gct:close'));
-    this.menu?.remove();
-    this.menu = undefined;
   }
 }
 

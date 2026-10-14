@@ -6,17 +6,20 @@ export const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
 export interface OpenAIChatRequest {
   model: string;
   messages: ChatMessage[];
-  temperature: number;
+  temperature?: number;
   top_p?: number;
   max_tokens?: number;
 }
 
-/** 构造 OpenAI Chat Completions 请求体，保持已验证的 compatible 参数映射。 */
+/**
+ * 构造 OpenAI Chat Completions 请求体，保持已验证的 compatible 参数映射。
+ * 生成参数只在用户配置时发送：Claude 4.7+、OpenAI 推理模型等会拒绝非默认的 temperature。
+ */
 export function buildOpenAIChatRequest(conf: OpenAIChatConfig, messages: ChatMessage[]): OpenAIChatRequest {
   return {
     model: conf.model,
     messages: toOpenAIChatMessages(messages),
-    temperature: conf.params?.temperature ?? 0.7,
+    ...(typeof conf.params?.temperature === 'number' ? { temperature: conf.params.temperature } : {}),
     ...(typeof conf.params?.top_p === 'number' ? { top_p: conf.params.top_p } : {}),
     ...(typeof conf.params?.max_tokens === 'number' ? { max_tokens: conf.params.max_tokens } : {}),
   };

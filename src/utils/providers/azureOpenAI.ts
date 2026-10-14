@@ -8,7 +8,7 @@ export function buildAzureOpenAIChatRequest(conf: AzureOpenAIConfig, messages: C
   return {
     model: conf.model,
     messages: toOpenAIChatMessages(messages),
-    temperature: conf.params?.temperature ?? 0.7,
+    ...(typeof conf.params?.temperature === 'number' ? { temperature: conf.params.temperature } : {}),
     ...(typeof conf.params?.top_p === 'number' ? { top_p: conf.params.top_p } : {}),
     ...(typeof conf.params?.max_tokens === 'number' ? { max_tokens: conf.params.max_tokens } : {}),
   };

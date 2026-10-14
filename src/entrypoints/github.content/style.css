@@ -5,32 +5,15 @@
   align-items: center;
   flex-shrink: 0;
   margin-right: 4px;
-  /* 默认隐藏（保留占位，标题栏不跳动），鼠标经过这条评论时才出现。 */
-  opacity: 0;
-  transition: opacity 0.12s ease;
-}
-
-[data-gct-comment]:hover .gct-actions,
-.gct-actions:focus-within,
-.gct-actions[data-active],
-.gct-actions:has([aria-expanded='true']) {
-  opacity: 1;
-}
-
-/* 触屏等没有悬停的设备上始终显示。 */
-@media (hover: none) {
-  .gct-actions {
-    opacity: 1;
-  }
 }
 
 .gct-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 28px;
   height: 28px;
-  min-width: 28px;
-  padding: 0 6px;
+  padding: 0;
   border: 0;
   border-radius: 6px;
   background: transparent;
@@ -38,19 +21,12 @@
   cursor: pointer;
 }
 
-.gct-button.gct-menu-button {
-  min-width: 20px;
-  padding: 0 2px;
-}
-
-.gct-button:hover:not(:disabled),
-.gct-button[aria-expanded='true'] {
+.gct-button:hover:not(:disabled) {
   background: var(--control-transparent-bgColor-hover, rgba(208, 215, 222, 0.32));
   color: var(--fgColor-default, #1f2328);
 }
 
 .gct-button:focus-visible,
-.gct-menu-item:focus-visible,
 .gct-link-button:focus-visible {
   outline: 2px solid var(--focus-outlineColor, #0969da);
   outline-offset: -2px;
@@ -138,61 +114,4 @@
 
 .gct-content.markdown-body {
   background: transparent;
-}
-
-.gct-menu {
-  position: absolute;
-  z-index: 100;
-  min-width: 200px;
-  max-width: 360px;
-  padding: 8px;
-  border: 1px solid var(--borderColor-default, #d1d9e0);
-  border-radius: 12px;
-  background: var(--overlay-bgColor, #ffffff);
-  box-shadow: var(
-    --shadow-floating-small,
-    0 0 0 1px rgba(209, 217, 224, 0.5),
-    0 6px 12px -3px rgba(37, 41, 46, 0.04),
-    0 6px 18px 0 rgba(37, 41, 46, 0.12)
-  );
-}
-
-.gct-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 32px;
-  padding: 6px 8px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--fgColor-default, #1f2328);
-  font-size: 14px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.gct-menu-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.gct-menu-item:hover {
-  background: var(--control-transparent-bgColor-hover, rgba(208, 215, 222, 0.32));
-}
-
-.gct-menu-icon {
-  display: inline-flex;
-  flex-shrink: 0;
-  width: 16px;
-  color: var(--fgColor-muted, #59636e);
-}
-
-.gct-menu-divider {
-  height: 1px;
-  margin: 8px -8px;
-  background: var(--borderColor-muted, #d1d9e0b3);
 }

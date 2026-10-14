@@ -17,8 +17,8 @@
   "showTranslation": {
     "message": "Show translation"
   },
-  "chooseEngine": {
-    "message": "Translate with…"
+  "translationEngine": {
+    "message": "Translation engine"
   },
   "settings": {
     "message": "Settings"
@@ -50,13 +50,13 @@
     "message": "Default engine"
   },
   "defaultEngineHint": {
-    "message": "Used when you click the Translate button. Pick another engine for a single comment from the arrow menu next to it."
+    "message": "Used when you click the Translate button. You can also switch it from the extension's toolbar icon."
   },
   "aiProviders": {
     "message": "AI providers"
   },
   "aiProvidersHint": {
-    "message": "Each provider is identified by its vendor and model. Same providers as ai-commit.providers in AI Commit++, with snake_case keys. API keys are stored only in this browser and are sent only to the provider you configure."
+    "message": "API keys stay in this browser and are only sent to the service they belong to."
   },
   "addProvider": {
     "message": "Add provider"
@@ -85,18 +85,10 @@
     "message": "Import / export"
   },
   "importExportHint": {
-    "message": "The JSON below is the current provider list (snake_case keys such as vendor, api_key, base_url). Edit it or paste ai-commit.providers from VS Code: camelCase keys are converted, id is dropped and vendor is inferred from the type or base_url host. Importing replaces all providers. Replace any ${env:NAME} API keys with the key itself."
+    "message": "To move your settings to another computer, copy everything below and paste it into Import / export there. Importing replaces all current settings. The content includes your API keys, so keep it private."
   },
   "imported": {
-    "message": "Imported $COUNT$ provider(s)",
-    "placeholders": {
-      "count": {
-        "content": "$1"
-      }
-    }
-  },
-  "invalidJson": {
-    "message": "Invalid JSON"
+    "message": "Settings imported"
   },
   "save": {
     "message": "Save"
@@ -114,7 +106,7 @@
     "message": "Vendor"
   },
   "field_vendor_hint": {
-    "message": "For example DeepSeek. Vendor + model must be unique."
+    "message": "Picking a preset fills in the type and Base URL. Pick Custom… if yours is not listed."
   },
   "field_type": {
     "message": "Type"
@@ -193,7 +185,7 @@
     "message": "Removed"
   },
   "importReplace": {
-    "message": "Import and replace"
+    "message": "Import"
   },
   "copy": {
     "message": "Copy"
@@ -206,5 +198,126 @@
   },
   "field_organization": {
     "message": "Organization"
+  },
+  "vendorPresets": {
+    "message": "Vendor presets"
+  },
+  "vendorPresetsHint": {
+    "message": "Pick one of these when adding a provider to fill in its type and Base URL."
+  },
+  "vendorCount": {
+    "message": "$COUNT$ preset(s)",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "noVendors": {
+    "message": "No vendor presets. Add one, or restore the built-in presets."
+  },
+  "addVendor": {
+    "message": "Add preset"
+  },
+  "addVendorTitle": {
+    "message": "Add vendor preset"
+  },
+  "restoreVendors": {
+    "message": "Restore built-ins"
+  },
+  "vendorsRestored": {
+    "message": "Added $ADDED$ and reset $RESET$ built-in preset(s)",
+    "placeholders": {
+      "added": {
+        "content": "$1"
+      },
+      "reset": {
+        "content": "$2"
+      }
+    }
+  },
+  "vendorsUpToDate": {
+    "message": "All built-in presets are in the list and unchanged"
+  },
+  "customVendor": {
+    "message": "Custom…"
+  },
+  "confirmRestoreVendors": {
+    "message": "Restoring will overwrite your changes to these built-in presets:"
+  },
+  "builtInBadge": {
+    "message": "Built-in"
+  },
+  "customBadge": {
+    "message": "Custom"
+  },
+  "editedBadge": {
+    "message": "Edited"
+  },
+  "editedBadgeTitle": {
+    "message": "Built-in default: $DEFAULT$. Restore built-ins resets it.",
+    "placeholders": {
+      "default": {
+        "content": "$1"
+      }
+    }
+  },
+  "invalidImport": {
+    "message": "This isn't valid exported content. Copy it again in full from the other computer and paste it here."
+  },
+  "importPlaceholder": {
+    "message": "Paste the content exported from your other computer"
+  },
+  "configRequired": {
+    "message": "Please fill in $FIELD$",
+    "placeholders": {
+      "field": {
+        "content": "$1"
+      }
+    }
+  },
+  "configInvalid": {
+    "message": "$FIELD$ is not valid",
+    "placeholders": {
+      "field": {
+        "content": "$1"
+      }
+    }
+  },
+  "configInvalidUrl": {
+    "message": "$FIELD$ must be a web address starting with https:// or http://",
+    "placeholders": {
+      "field": {
+        "content": "$1"
+      }
+    }
+  },
+  "providerDuplicate": {
+    "message": "This vendor and model have already been added"
+  },
+  "vendorDuplicate": {
+    "message": "This vendor is already in the presets"
+  },
+  "importProviderItem": {
+    "message": "Provider $NUMBER$: $MESSAGE$",
+    "placeholders": {
+      "number": {
+        "content": "$1"
+      },
+      "message": {
+        "content": "$2"
+      }
+    }
+  },
+  "importVendorItem": {
+    "message": "Vendor preset $NUMBER$: $MESSAGE$",
+    "placeholders": {
+      "number": {
+        "content": "$1"
+      },
+      "message": {
+        "content": "$2"
+      }
+    }
   }
 }

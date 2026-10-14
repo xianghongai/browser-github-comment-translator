@@ -1,14 +1,25 @@
-import { Braces, Pencil, PlugZap, Plus, Trash, X, createElement } from 'lucide';
+import { Braces, Pencil, PlugZap, Plus, RotateCcw, Trash, X, createElement } from 'lucide';
 import { browser } from 'wxt/browser';
 import { GOOGLE_ENGINE, isSameEngine, toProviderRef } from '../../utils/engine';
 import { TARGET_LANGUAGES, formatLanguageOption } from '../../utils/languages';
 import type { Request, TranslateResponse } from '../../utils/messages';
-import { getProviderOriginPattern, parseProviderConfigs } from '../../utils/providers/config';
+import { ConfigError } from '../../utils/config-error';
+import { getProviderOriginPattern, parseProviderConfigs, validateProviderConfig } from '../../utils/providers/config';
 import { DEFAULT_OLLAMA_BASE_URL } from '../../utils/providers/ollama';
 import { DEFAULT_OPENAI_BASE_URL } from '../../utils/providers/openaiCompatible';
 import { getErrorMessage, getProviderLabel } from '../../utils/providers/shared';
 import { PROVIDER_TYPES, type ProviderSettingsEntry, type ProviderType } from '../../utils/providers/types';
 import { loadSettings, settingsItem, type Settings } from '../../utils/settings';
+import {
+  DEFAULT_VENDOR_PRESETS,
+  TYPES_WITH_BASE_URL,
+  describeVendorPreset,
+  findVendorPreset,
+  getVendorPresetOrigin,
+  restoreDefaultVendorPresets,
+  upsertVendorPreset,
+  type VendorPreset,
+} from '../../utils/vendors';
 import {
   ADVANCED_FIELDS,
   COMMON_FIELDS,
@@ -18,7 +29,7 @@ import {
   fieldsToRaw,
   type FieldName,
 } from './form';
-import { removeProvider, replaceProviders, upsertProvider, type ProvidersChange } from './providers-ops';
+import { exportConfig, importConfig, removeProvider, upsertProvider, type ProvidersChange } from './providers-ops';
 import './style.css';
 
 const t = (key: string, substitutions?: string | string[]) => browser.i18n.getMessage(key as never, substitutions);
@@ -33,7 +44,7 @@ const FIELD_INPUT_TYPE: Partial<Record<FieldName, string>> = {
 
 const FIELD_PLACEHOLDER: Partial<Record<FieldName, string>> = {
   model: 'deepseek-chat',
-  base_url: 'https://api.deepseek.com/v1',
+  base_url: 'https://api.deepseek.com',
   endpoint: 'https://<resource>.openai.azure.com',
   api_version: '2024-10-21',
   timeout_ms: '120000',
@@ -114,7 +125,8 @@ function render(): void {
   app.replaceChildren(
     h('header', { className: 'page-header' }, h('h1', {}, t('appName')), h('p', { className: 'muted' }, t('appDesc'))),
     renderGeneral(),
-    renderProviders()
+    renderProviders(),
+    renderVendors()
   );
 }
 
@@ -204,7 +216,7 @@ function renderProviderRow(provider: ProviderSettingsEntry, index: number): HTML
         h('span', {}, getProviderLabel(provider)),
         isDefault && h('span', { className: 'badge' }, t('defaultBadge'))
       ),
-      h('div', { className: 'provider-meta' }, `${provider.type} · ${describeEndpoint(provider)}`),
+      h('div', { className: 'provider-meta' }, describeEndpoint(provider)),
       result
     ),
     h(
@@ -226,23 +238,30 @@ function renderProviderRow(provider: ProviderSettingsEntry, index: number): HTML
   );
 }
 
-/** 列表里第二行展示接口地址的主机名；省略 base_url 时标注为默认地址。 */
-function describeEndpoint(provider: ProviderSettingsEntry): string {
+/** 列表里第二行展示类型和接口地址的主机名；省略 base_url 时展示默认地址。厂商预设没有 Azure 的 endpoint，只展示类型。 */
+function describeEndpoint({
+  type,
+  base_url,
+  endpoint,
+}: {
+  type: ProviderType;
+  base_url?: string;
+  endpoint?: string;
+}): string {
   const url =
-    provider.type === 'azure-openai'
-      ? provider.endpoint
-      : provider.type === 'gemini'
+    type === 'azure-openai'
+      ? endpoint
+      : type === 'gemini'
         ? 'https://generativelanguage.googleapis.com'
-        : (provider.base_url ??
-          (provider.type === 'ollama'
-            ? DEFAULT_OLLAMA_BASE_URL
-            : provider.type === 'openai'
-              ? DEFAULT_OPENAI_BASE_URL
-              : ''));
+        : (base_url ??
+          (type === 'ollama' ? DEFAULT_OLLAMA_BASE_URL : type === 'openai' ? DEFAULT_OPENAI_BASE_URL : ''));
+  if (!url) {
+    return type;
+  }
   try {
-    return new URL(url).host;
+    return `${type} · ${new URL(url).host}`;
   } catch {
-    return url;
+    return `${type} · ${url}`;
   }
 }
 
@@ -256,8 +275,19 @@ function openProviderDialog(index: number | null): void {
   const result = h('div', { className: 'test-result', role: 'status' });
   const body = h('div', { className: 'dialog-body' });
 
+  // 厂商用下拉选预设，选「自定义」再输入；Base URL 可以从预设里选，也可以自己输入。
+  let customVendor = !findVendorPreset(settings.vendors, fields.vendor);
+  const baseUrlOptions = h(
+    'datalist',
+    { id: 'base-url-presets' },
+    ...settings.vendors
+      .filter((preset) => preset.base_url)
+      .map((preset) => h('option', { value: preset.base_url!, label: preset.vendor }))
+  );
+
   const renderBody = () => {
     body.replaceChildren(
+      baseUrlOptions,
       h('div', { className: 'grid' }, ...[...COMMON_FIELDS, ...fieldsForType(fields.type)].map(providerInput)),
       h(
         'details',
@@ -268,8 +298,61 @@ function openProviderDialog(index: number | null): void {
     );
   };
 
+  /** 选中预设时套用它的厂商、类型和 Base URL；模型、API Key 保留。 */
+  const applyVendorPreset = (preset: VendorPreset) => {
+    if (preset.type !== fields.type) {
+      Object.assign(fields, { ...emptyFields(preset.type), model: fields.model, api_key: fields.api_key });
+    }
+    fields.vendor = preset.vendor;
+    fields.base_url = preset.base_url ?? emptyFields(preset.type).base_url;
+  };
+
+  /** 与类型一样用原生下拉；第一项「自定义」展开输入框，填写预设以外的厂商名。 */
+  const vendorInput = (label: string): HTMLElement => {
+    const select = h(
+      'select',
+      {
+        name: 'vendor-preset',
+        onchange: () => {
+          const preset = select.selectedIndex > 0 ? settings.vendors[select.selectedIndex - 1] : undefined;
+          customVendor = !preset;
+          if (preset) {
+            applyVendorPreset(preset);
+          }
+          renderBody();
+          if (customVendor) {
+            body.querySelector<HTMLInputElement>('input[name="vendor"]')?.focus();
+          }
+        },
+      },
+      h('option', { textContent: t('customVendor') }),
+      ...settings.vendors.map((preset) => h('option', { textContent: preset.vendor }))
+    );
+    const presetIndex = customVendor
+      ? -1
+      : settings.vendors.findIndex((preset) => preset === findVendorPreset(settings.vendors, fields.vendor));
+    select.selectedIndex = presetIndex + 1;
+    if (!customVendor) {
+      return field(label, select, t('field_vendor_hint'));
+    }
+    const input = h('input', {
+      name: 'vendor',
+      type: 'text',
+      value: fields.vendor,
+      placeholder: placeholderFor(fields.type, 'vendor'),
+      spellcheck: false,
+      oninput: () => (fields.vendor = input.value),
+    });
+    input.setAttribute('autocomplete', 'off');
+    input.setAttribute('aria-label', label);
+    return field(label, h('div', { className: 'stack' }, select, input), t('field_vendor_hint'));
+  };
+
   const providerInput = (name: FieldName): HTMLElement => {
     const label = t(`field_${name}`) || name;
+    if (name === 'vendor') {
+      return vendorInput(label);
+    }
     if (name === 'type') {
       const select = h(
         'select',
@@ -301,6 +384,7 @@ function openProviderDialog(index: number | null): void {
       return field(label, textarea, undefined, 'span-2');
     }
     const input = h('input', {
+      name,
       type: FIELD_INPUT_TYPE[name] ?? 'text',
       value: fields[name],
       placeholder: placeholderFor(fields.type, name),
@@ -308,6 +392,9 @@ function openProviderDialog(index: number | null): void {
       oninput: () => (fields[name] = input.value),
     });
     input.setAttribute('autocomplete', 'off');
+    if (name === 'base_url') {
+      input.setAttribute('list', baseUrlOptions.id);
+    }
     if (name === 'temperature' || name === 'top_p') {
       input.step = '0.1';
     }
@@ -323,7 +410,7 @@ function openProviderDialog(index: number | null): void {
       try {
         change = upsertProvider(settings, index, fieldsToRaw(fields, index ?? settings.providers.length));
       } catch (failure) {
-        showFeedback(error, getErrorMessage(failure, t('saveFailed')));
+        showFeedback(error, describeFailure(failure, t('saveFailed')));
         return;
       }
       submitChange(dialog, saveButton, error, change);
@@ -374,28 +461,209 @@ function field(label: string, control: HTMLElement, hint?: string, className = '
 }
 
 // ---------------------------------------------------------------------------
+// 厂商预设：只有厂商、类型和 Base URL，模型更新太频繁，不做预设
+
+function renderVendors(): HTMLElement {
+  const list = settings.vendors.length
+    ? h('ul', { className: 'provider-list' }, ...settings.vendors.map(renderVendorRow))
+    : h('p', { className: 'empty' }, t('noVendors'));
+
+  return h(
+    'section',
+    { className: 'card' },
+    h(
+      'div',
+      { className: 'card-header' },
+      h('h2', {}, t('vendorPresets')),
+      h(
+        'div',
+        { className: 'actions' },
+        button(t('restoreVendors'), restoreVendors, { leading: RotateCcw }),
+        button(t('addVendor'), () => openVendorDialog(null), { leading: Plus })
+      )
+    ),
+    h('p', { className: 'muted' }, t('vendorPresetsHint')),
+    h(
+      'details',
+      { className: 'vendor-presets' },
+      h('summary', {}, t('vendorCount', String(settings.vendors.length))),
+      list
+    )
+  );
+}
+
+/** 预设来源的标记：默认（未改动的内置预设）、已修改（「恢复内置预设」会改回默认值）、自定义。 */
+function vendorOriginBadge(preset: VendorPreset): HTMLElement {
+  const origin = getVendorPresetOrigin(preset);
+  const badge = h('span', {
+    className: `badge ${origin}`,
+    textContent: t(origin === 'built-in' ? 'builtInBadge' : origin === 'edited' ? 'editedBadge' : 'customBadge'),
+  });
+  if (origin === 'edited') {
+    badge.title = t('editedBadgeTitle', describeVendorPreset(findVendorPreset(DEFAULT_VENDOR_PRESETS, preset.vendor)!));
+  }
+  return badge;
+}
+
+function renderVendorRow(preset: VendorPreset, index: number): HTMLElement {
+  return h(
+    'li',
+    { className: 'provider-row' },
+    h(
+      'div',
+      { className: 'provider-main' },
+      h('div', { className: 'provider-title' }, h('span', {}, preset.vendor), vendorOriginBadge(preset)),
+      h('div', { className: 'provider-meta' }, describeEndpoint(preset))
+    ),
+    h(
+      'div',
+      { className: 'provider-actions' },
+      iconButton(t('editProvider'), Pencil, () => openVendorDialog(index)),
+      iconButton(
+        t('removeProvider'),
+        Trash,
+        () => {
+          if (confirm(t('confirmRemove', preset.vendor))) {
+            const vendors = settings.vendors.filter((_, position) => position !== index);
+            void persist({ ...settings, vendors }, t('removed')).then(keepVendorsOpen);
+          }
+        },
+        'danger'
+      )
+    )
+  );
+}
+
+/** 列表重新渲染后保持展开，方便连续编辑。 */
+function keepVendorsOpen(): void {
+  app.querySelector<HTMLDetailsElement>('details.vendor-presets')?.setAttribute('open', '');
+}
+
+/** 补回缺少的内置预设；会覆盖用户改过的内置预设时，先列出改动让用户确认。 */
+function restoreVendors(): void {
+  const { presets, added, reset } = restoreDefaultVendorPresets(settings.vendors);
+  if (!added.length && !reset.length) {
+    toast(t('vendorsUpToDate'));
+    return;
+  }
+  if (reset.length) {
+    const changes = reset.map(
+      ({ from, to }) => `${from.vendor}\n  ${describeVendorPreset(from)}\n  → ${describeVendorPreset(to)}`
+    );
+    if (!confirm(`${t('confirmRestoreVendors')}\n\n${changes.join('\n')}`)) {
+      return;
+    }
+  }
+  void persist(
+    { ...settings, vendors: presets },
+    t('vendorsRestored', [String(added.length), String(reset.length)])
+  ).then(keepVendorsOpen);
+}
+
+function openVendorDialog(index: number | null): void {
+  const existing = index === null ? undefined : settings.vendors[index];
+  const fields = {
+    vendor: existing?.vendor ?? '',
+    type: existing?.type ?? 'openai-compatible',
+    base_url: existing?.base_url ?? '',
+  };
+  const error = h('div', { className: 'form-error', role: 'alert' });
+  const body = h('div', { className: 'grid' });
+
+  const renderBody = () => {
+    const vendor = h('input', {
+      type: 'text',
+      value: fields.vendor,
+      placeholder: VENDOR_PLACEHOLDER[fields.type],
+      spellcheck: false,
+      oninput: () => (fields.vendor = vendor.value),
+    });
+    vendor.setAttribute('autocomplete', 'off');
+    const type = h(
+      'select',
+      {
+        onchange: () => {
+          fields.type = type.value as ProviderType;
+          renderBody();
+        },
+      },
+      ...PROVIDER_TYPES.map((value) => h('option', { value, textContent: value }))
+    );
+    type.value = fields.type;
+    const baseUrl = h('input', {
+      type: 'text',
+      value: fields.base_url,
+      placeholder: placeholderFor(fields.type, 'base_url'),
+      spellcheck: false,
+      oninput: () => (fields.base_url = baseUrl.value),
+    });
+    baseUrl.setAttribute('autocomplete', 'off');
+    body.replaceChildren(
+      field(t('field_vendor'), vendor),
+      field(t('field_type'), type),
+      ...(TYPES_WITH_BASE_URL.includes(fields.type) ? [field(t('field_base_url'), baseUrl, undefined, 'span-2')] : [])
+    );
+  };
+  renderBody();
+
+  const dialog = openDialog(
+    existing ? t('editProviderTitle', existing.vendor) : t('addVendorTitle'),
+    h('div', { className: 'dialog-body' }, body, error),
+    [
+      button(t('cancel'), () => dialog.close()),
+      button(
+        t('save'),
+        () => {
+          let vendors: VendorPreset[];
+          try {
+            vendors = upsertVendorPreset(settings.vendors, index, fields);
+          } catch (failure) {
+            showFeedback(error, describeFailure(failure, t('saveFailed')));
+            return;
+          }
+          void persist({ ...settings, vendors }).then((saved) => {
+            if (saved) {
+              dialog.close();
+              keepVendorsOpen();
+            }
+          });
+        },
+        { variant: 'primary' }
+      ),
+    ]
+  );
+}
+
+// ---------------------------------------------------------------------------
 // 导入 / 导出弹窗
 
 function openImportExport(): void {
   const textarea = h('textarea', {
     rows: 14,
     spellcheck: false,
-    value: settings.providers.length ? JSON.stringify(settings.providers, null, 2) : '',
-    placeholder:
-      '[\n  { "vendor": "DeepSeek", "type": "openai-compatible", "base_url": "…", "model": "…", "api_key": "…" }\n]',
+    value: JSON.stringify(exportConfig(settings), null, 2),
+    placeholder: t('importPlaceholder'),
   });
   const error = h('div', { className: 'form-error', role: 'alert' });
   const importButton = button(
     t('importReplace'),
     () => {
-      let change: ProvidersChange;
+      let change: ProvidersChange | undefined;
       try {
-        change = replaceProviders(settings, JSON.parse(textarea.value));
+        change = importConfig(settings, JSON.parse(textarea.value));
       } catch (failure) {
-        showFeedback(error, getErrorMessage(failure, t('invalidJson')));
+        // JSON 不完整（例如没复制全）只提示重新粘贴；内容能解析但某个服务有问题时，给出具体原因。
+        showFeedback(
+          error,
+          failure instanceof SyntaxError ? t('invalidImport') : describeFailure(failure, t('invalidImport'), true)
+        );
         return;
       }
-      submitChange(dialog, importButton, error, change, t('imported', String(change.settings.providers.length)));
+      if (!change) {
+        showFeedback(error, t('invalidImport'));
+        return;
+      }
+      submitChange(dialog, importButton, error, change, t('imported'));
     },
     { variant: 'primary' }
   );
@@ -462,6 +730,31 @@ function submitChange(
   });
 }
 
+/**
+ * 把配置校验错误换成面向用户的提示，例如「请填写模型」「这个厂商和模型已经添加过了」。
+ * inList 为 true（导入）时注明是第几个服务或预设；其它错误原样显示。
+ */
+function describeFailure(failure: unknown, fallback: string, inList = false): string {
+  if (!(failure instanceof ConfigError)) {
+    return getErrorMessage(failure, fallback);
+  }
+  const { code, scope, index, field } = failure.issue;
+  const label = field ? t(`field_${field}`) || field : '';
+  const message =
+    code === 'duplicate'
+      ? t(scope === 'vendor' ? 'vendorDuplicate' : 'providerDuplicate')
+      : code === 'required'
+        ? t('configRequired', label)
+        : code === 'url'
+          ? t('configInvalidUrl', label)
+          : label
+            ? t('configInvalid', label)
+            : fallback;
+  return inList && index !== undefined
+    ? t(scope === 'vendor' ? 'importVendorItem' : 'importProviderItem', [String(index + 1), message])
+    : message;
+}
+
 function showFeedback(element: HTMLElement, message: string, pending = false): void {
   element.classList.toggle('pending', pending);
   element.textContent = message;
@@ -492,9 +785,11 @@ function testProvider(raw: Record<string, unknown>, result: HTMLElement): void {
   let origin: string;
   try {
     const [entry] = parseProviderConfigs([raw]);
+    // 测试前先检查 API Key，缺失时直接给出提示，不必等后台返回。
+    validateProviderConfig(entry);
     origin = getProviderOriginPattern(entry);
   } catch (failure) {
-    showResult(result, getErrorMessage(failure, t('saveFailed')), 'error');
+    showResult(result, describeFailure(failure, t('saveFailed')), 'error');
     return;
   }
   showResult(result, t('testing'), 'info');

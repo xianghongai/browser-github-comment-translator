@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { Settings } from '../../utils/settings';
-import { removeProvider, replaceProviders, upsertProvider } from './providers-ops';
+import { DEFAULT_VENDOR_PRESETS } from '../../utils/vendors';
+import { exportConfig, importConfig, removeProvider, upsertProvider } from './providers-ops';
 
 const deepseek = { vendor: 'DeepSeek', type: 'ollama', model: 'deepseek-chat' } as const;
 const qwen = { vendor: 'Ollama', type: 'ollama', model: 'qwen3' } as const;
 
 function settingsWith(engine: Settings['engine']): Settings {
-  return { target_lang: 'zh-CN', engine, providers: [deepseek, qwen] };
+  return { target_lang: 'zh-CN', engine, providers: [deepseek, qwen], vendors: [...DEFAULT_VENDOR_PRESETS] };
 }
 
 describe('upsertProvider', () => {
@@ -54,12 +55,23 @@ describe('removeProvider', () => {
   });
 });
 
-describe('replaceProviders', () => {
-  it('keeps the default engine if it is still imported, otherwise falls back to Google', () => {
-    const kept = replaceProviders(settingsWith({ vendor: 'Ollama', model: 'qwen3' }), [qwen]);
-    expect(kept.settings.engine).toEqual({ vendor: 'Ollama', model: 'qwen3' });
-    expect(replaceProviders(settingsWith({ vendor: 'Ollama', model: 'qwen3' }), [deepseek]).settings.engine).toBe(
-      'google'
-    );
+describe('importConfig', () => {
+  it('moves every setting to another browser', () => {
+    const source: Settings = { ...settingsWith({ vendor: 'Ollama', model: 'qwen3' }), target_lang: 'ja' };
+    const exported = JSON.parse(JSON.stringify(exportConfig(source)));
+    const target: Settings = { target_lang: 'en', engine: 'google', providers: [], vendors: [] };
+    expect(importConfig(target, exported)?.settings).toEqual(source);
+  });
+
+  it('falls back to Google when the imported default engine is not among the imported providers', () => {
+    const exported = { ...exportConfig(settingsWith('google')), engine: { vendor: 'Gone', model: 'x' } };
+    expect(importConfig(settingsWith('google'), exported)?.settings.engine).toBe('google');
+  });
+
+  it('returns undefined for content it does not recognize', () => {
+    expect(importConfig(settingsWith('google'), { foo: 1 })).toBeUndefined();
+    expect(importConfig(settingsWith('google'), 'oops')).toBeUndefined();
+    expect(importConfig(settingsWith('google'), [deepseek])).toBeUndefined();
+    expect(importConfig(settingsWith('google'), { providers: [deepseek] })).toBeUndefined();
   });
 });

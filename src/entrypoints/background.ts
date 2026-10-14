@@ -1,9 +1,9 @@
 import { browser, type Browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
 import { translateWithGoogle } from '../utils/google';
-import type { EnginesResponse, Request, TranslateResponse } from '../utils/messages';
+import type { Request, TranslateResponse } from '../utils/messages';
 import { getProviderOriginPattern, parseProviderConfigs, validateProviderConfig } from '../utils/providers/config';
-import { GOOGLE_ENGINE, toProviderRef, type Engine } from '../utils/engine';
+import { GOOGLE_ENGINE, type Engine } from '../utils/engine';
 import { getErrorMessage, getProviderLabel, isSameProvider } from '../utils/providers/shared';
 import type { ProviderSettingsEntry } from '../utils/providers/types';
 import { loadSettings } from '../utils/settings';
@@ -27,12 +27,6 @@ export default defineBackground(() => {
         }
         respond(testProvider(message.provider, message.target_lang), sendResponse);
         return true;
-      case 'gct:engines':
-        getEngines().then(sendResponse, () => sendResponse({ engines: [], defaultEngine: GOOGLE_ENGINE }));
-        return true;
-      case 'gct:open-options':
-        void browser.runtime.openOptionsPage();
-        return false;
       default:
         return false;
     }
@@ -86,16 +80,5 @@ async function translateWithEntry(entry: ProviderSettingsEntry, texts: string[],
   return {
     translations: await translateWithProvider(conf, texts, targetLang),
     engineLabel: getProviderLabel(conf),
-  };
-}
-
-async function getEngines(): Promise<EnginesResponse> {
-  const settings = await loadSettings();
-  return {
-    engines: [
-      { engine: GOOGLE_ENGINE, label: 'Google Translate' },
-      ...settings.providers.map((provider) => ({ engine: toProviderRef(provider), label: getProviderLabel(provider) })),
-    ],
-    defaultEngine: settings.engine,
   };
 }
