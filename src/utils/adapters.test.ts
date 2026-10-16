@@ -63,6 +63,19 @@ const DISCUSSION = `
   </div></div>
 </div>`;
 
+// 精简自 gist.github.com/qoomon/5dfcdf8eec66a051ecd85625518cfd13：锚点 id 直接挂在 .timeline-comment 上。
+const GIST = `
+<div class="TimelineItem js-comment-container">
+  <div id="gistcomment-1" class="timeline-comment-group js-comment timeline-comment">
+    <div class="timeline-comment-header">
+      <div class="timeline-comment-actions"><details id="gist-menu"></details></div>
+    </div>
+    <div class="edit-comment-hide">
+      <task-lists><div class="comment-body markdown-body js-comment-body" id="gist-md"><p>Gist comment</p></div></task-lists>
+    </div>
+  </div>
+</div>`;
+
 describe('findCommentTargets', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
@@ -94,6 +107,14 @@ describe('findCommentTargets', () => {
       ['reply-menu', 'reply-md'],
     ]);
     expect(targets.slice(1).map(({ key }) => key)).toEqual(['discussioncomment-1', 'discussioncomment-2']);
+  });
+
+  it('finds gist comments and keys them by their gistcomment- id', () => {
+    document.body.innerHTML = GIST;
+    const targets = findCommentTargets(document);
+    expect(targets.map(({ key, anchor, body }) => [key, anchor.id, body.id])).toEqual([
+      ['gistcomment-1', 'gist-menu', 'gist-md'],
+    ]);
   });
 
   it('ignores markdown inside an existing translation panel', () => {

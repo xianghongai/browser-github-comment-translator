@@ -1,6 +1,6 @@
 # GitHub Comment Translator
 
-Translate a single GitHub issue, pull request or discussion comment, not the whole page, with Google Translate or your own AI model. Works in Chrome, Edge and Firefox.
+Translate a single GitHub issue, pull request, discussion or Gist comment, not the whole page, with Google Translate or your own AI model. Works in Chrome, Edge and Firefox.
 
 ## Usage
 
@@ -63,7 +63,7 @@ pnpm zip:all        # .output/*.zip for Chrome, Edge and Firefox
 
 # GitHub 评论翻译
 
-用 Google 翻译或你自己的 AI 模型，只翻译 GitHub Issue / Pull Request / Discussion 中的某一条评论，而不是整页翻译。支持 Chrome、Edge 和 Firefox。
+用 Google 翻译或你自己的 AI 模型，只翻译 GitHub Issue / Pull Request / Discussion / Gist 中的某一条评论，而不是整页翻译。支持 Chrome、Edge 和 Firefox。
 
 ## 使用
 

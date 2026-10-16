@@ -3,7 +3,7 @@
     "message": "GitHub 评论翻译"
   },
   "appDesc": {
-    "message": "用 Google 翻译或你自己的 AI 模型，只翻译 GitHub Issue / Pull Request / Discussion 中的某一条评论"
+    "message": "用 Google 翻译或你自己的 AI 模型，只翻译 GitHub Issue / Pull Request / Discussion / Gist 中的某一条评论"
   },
   "translate": {
     "message": "翻译这条评论"

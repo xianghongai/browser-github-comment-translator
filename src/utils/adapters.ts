@@ -1,7 +1,7 @@
 /**
  * GitHub 同时存在两套评论 DOM：
  * - React 版 Issue 页（data-testid 稳定，class 名带 CSS Modules 哈希，只能用前缀匹配）；
- * - Rails 经典版 PR Conversation / Files changed 页与 Discussions 页（.timeline-comment / .review-comment）。
+ * - Rails 经典版 PR Conversation / Files changed 页、Discussions 页与 Gist 页（.timeline-comment / .review-comment）。
  * 每个适配器把一条评论归一成：按钮插在哪里、正文在哪里。
  */
 export interface CommentTarget {
@@ -46,7 +46,7 @@ const reactIssueBody: Adapter = {
 };
 
 /**
- * 经典版 PR 时间线、代码评审评论与 Discussions：按钮放在 .timeline-comment-actions 的最前面。
+ * 经典版 PR 时间线、代码评审评论、Discussions 与 Gist：按钮放在 .timeline-comment-actions 的最前面。
  * Discussions 的 ⋯ 菜单包在 .d-flex 行里，按钮要插进这一行，否则会单独占一行。
  */
 const classicComment: Adapter = {
@@ -77,10 +77,10 @@ export function findCommentTargets(root: ParentNode = document): CommentTarget[]
   });
 }
 
-/** 经典版评论的锚点 id（issuecomment-1、discussion_r2、discussioncomment-3 …）；找不到时给元素分配一个一次性的 key。 */
+/** 经典版评论的锚点 id（issuecomment-1、discussion_r2、discussioncomment-3、gistcomment-4 …）；找不到时给元素分配一个一次性的 key。 */
 function classicKey(container: Element): string {
   const anchored = container.closest(
-    '[id^="issuecomment-"], [id^="pullrequest-"], [id^="discussion_r"], [id^="discussioncomment-"], [id^="issue-"]'
+    '[id^="issuecomment-"], [id^="pullrequest-"], [id^="discussion_r"], [id^="discussioncomment-"], [id^="gistcomment-"], [id^="issue-"]'
   );
   if (anchored) {
     return anchored.id;
